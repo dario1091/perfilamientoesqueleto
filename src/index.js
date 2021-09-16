@@ -13,16 +13,16 @@ async function worker() {
   try {
 
 
-   let awsPathFile="https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
-    await readPaymentgSupport(awsPathFile).then(response => {
+   //let awsPathFile="https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
+   let awsPathFile="src/docs/paymentSupport-159396f2f8677d9f.png" 
+   await readPaymentgSupport(awsPathFile).then(response => {
 
       if (response) {
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
         console.log(":::::::::::::::    response    ::::::::::::::::::");
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
-        console.log(JSON.parse(JSON.stringify(response)));
+        // console.log(JSON.parse(JSON.stringify(response)));
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
-
       }
 
 

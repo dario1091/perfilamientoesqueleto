@@ -1,5 +1,7 @@
 const AWS = require('aws-sdk');
 const dotenv = require("dotenv");
+const fs = require('fs');
+
 dotenv.config();
 
 
@@ -7,6 +9,10 @@ async function documentExtract(imagePath = "", isRequest = false) {
 
 
   try {
+
+    var bitmap = fs.readFileSync(imagePath);
+    var bufferImage = new Buffer.from(bitmap);
+
 
     array = imagePath.split("/");
     let fileName;
@@ -27,11 +33,11 @@ async function documentExtract(imagePath = "", isRequest = false) {
       console.log("FileName : " + fileName);
       var params = {
         Document: {
-          // Bytes: bufferImage,
-          S3Object: {
-            Bucket: process.env.BUCKET_NAME,
-            Name: fileName
-          }
+          Bytes: bufferImage,
+          // S3Object: {
+          //   Bucket: process.env.BUCKET_NAME,
+          //   Name: fileName
+          // }
         },
       }
 

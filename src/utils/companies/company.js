@@ -49,7 +49,9 @@ const readPaymentgSupport = (filePath, isRequest = false) => new Promise((resolv
 
         } else
           jsonCliente = false;
-
+          
+          
+          console.log(arrayTextLine);
         (jsonToRead) ? resolve(arrayTextLine) : resolve(false)
 
       })();
