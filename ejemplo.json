@@ -1,32 +1,33 @@
 {
-    "client": {
-        "name": "XXXXX xxxxxxxx XXXXX",
-        "banco": {
-            "name": "BANCO DAVIVIENDA S.A.",
-            "account": "000000000000000"
-        },
-        "cargo": "PROMOTOR RETAIL EPSON",
-        "salud": "NUEVA EPS",
-        "basico": "908,526",
-        "nomina": "8/31/2021",
-        "pension": "ADMINISTRADORA",
-        "convenio": "- NO APLICA",
-        "devengos": {
-            "list": [],
-            "subtotal": 908526511850,
-            "confidence": null
-        },
-        "confidence": 103.09826342264812,
-        "sueldoNeto": 1190,
-        "deducciones": {
-            "list": [],
-            "subtotal": 366322,
-            "confidence": null
-        },
-        "documentNumber": "xxxxxxxxxxxx"
+  "client": {
+    "name": "XXXXX xxxxxxxx XXXXX",
+    "banco": {
+      "name": "BANCO DAVIVIENDA S.A.",
+      "account": "000000000000000"
     },
-    "company": {
-        "nit": "0000000",
-        "name": "companyname"
-    }
+    "cargo": "PROMOTOR RETAIL EPSON",
+    "salud": "NUEVA EPS",
+    "basico": "908,526",
+    "nomina": "8/31/2021",
+    "pension": "ADMINISTRADORA",
+    "convenio": "- NO APLICA",
+    "fechaIngreso": "7/30/2020",
+    "devengos": {
+      "list": [],
+      "subtotal": 908526511850,
+      "confidence": null
+    },
+    "confidence": 103.09826342264812,
+    "sueldoNeto": 1190,
+    "deducciones": {
+      "list": [],
+      "subtotal": 366322,
+      "confidence": null
+    },
+    "documentNumber": "xxxxxxxxxxxx"
+  },
+  "company": {
+    "nit": "0000000",
+    "name": "companyname"
+  }
 }
