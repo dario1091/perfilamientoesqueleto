@@ -12,7 +12,7 @@ async function worker() {
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
         // console.log(response)
         // response.map((x) => console.log(x));
-        // console.log(JSON.parse(JSON.stringify(response)));
+        console.log(JSON.parse(JSON.stringify(response)));
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
       }
     });

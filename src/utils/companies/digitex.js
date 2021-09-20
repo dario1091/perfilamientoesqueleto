@@ -23,6 +23,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
        */
       let leftDiscounts = 0;
 
+      let contConfidence = 0;
+      let totalDatos = 0;
+
       let jsonClient = {
         name: "",
         banco: {
@@ -102,12 +105,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine.push(newElem);
                 }
 
-                // Captura de datos fijos
+                // Captura de datos estáticos
                 if (block.Text.toUpperCase().startsWith("COMDATA")) {
                   jsonCompany.name = block.Text;
                 }
                 if (block.Text.toUpperCase().startsWith("NIT")) {
-                  jsonCompany.nit = block.Text.split(":")[1];
+                  jsonCompany.nit = block.Text.slice(4);
                 }
                 if (block.Text.toUpperCase().startsWith("PERÍODO PAGO")) {
                   jsonClient.nomina = block.Text.split(" ")[2];
@@ -145,8 +148,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             })
             .indexOf("Concepto");
 
-          console.log(init);
-
           /**
            * Posición final de tabla de devengos / descuentos
            */
@@ -156,7 +157,87 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             })
             .indexOf("Unidad Org.");
 
-          console.log(end);
+          /**
+           * Recorrido del documento para capturar datos fijos donde se
+           * declaran 2 variables
+           * @bloque que por defecto el valor del dato esta siempre 1 campo
+           * debajo del header
+           * @columna para ubicar respectivamente el dato por bloque, teniendo
+           * en cuenta que cada bloque tiene distintas columnas. Además de que
+           * 0 -> Es la primera ya que se devuelve como un Array
+           */
+
+          for (let i = 0; i < arrayTextLine.length; i++) {
+            let bloque = i + 1;
+            let columna = 0;
+
+            arrayTextLine[i].arrayText.map((x) => {
+              if (x.text === "Total Devengos") {
+                columna = 1;
+                jsonClient.devengos.subtotal =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "Total Descuentos") {
+                columna = 2;
+                jsonClient.descuentos.subtotal =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "Empleado") {
+                columna = 0;
+                jsonClient.name = arrayTextLine[i + 1].arrayText[columna].text;
+              }
+
+              if (x.text === "Ingreso") {
+                columna = 0;
+                jsonClient.fechaIngreso =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "EPS") {
+                columna = 1;
+                jsonClient.salud =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "AFP") {
+                columna = 2;
+                jsonClient.pension = jsonClient.salud =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "Unidad Org.") {
+                columna = 0;
+                jsonClient.convenio =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "Neto a Pagar") {
+                columna = 3;
+                jsonClient.sueldoNeto =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "Sueldo Base") {
+                columna = 4;
+                jsonClient.basico =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text === "Núm. Documento") {
+                columna = 3;
+                jsonClient.documentNumber =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              contConfidence += x.confidence;
+              totalDatos++;
+              jsonClient.confidence = (contConfidence / totalDatos).toFixed(2);
+
+              // Calculo de puntuacion de confiabilidad de lectura del documento
+            });
+          }
 
           // let allowedData = /^[0-9]*(\.?)[0-9]+$/;
           // x.text.match(allowedData) &&
@@ -169,6 +250,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * Objeto que guarda los elementos que tengan descuentos
            */
           let elementDescuentos = {};
+
           // Recorriendo la tabla
 
           /**
@@ -218,7 +300,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       ? arrayTextLine[i].arrayText[3]?.text
                       : columnaUnidadVacia,
                 };
-
+                contConfidence += x.confidence;
+                totalDatos++;
+                jsonClient.devengos.confidence = (
+                  contConfidence / totalDatos
+                ).toFixed(2);
                 jsonClient.devengos.list.push(elementDevengos);
               }
 
@@ -239,25 +325,33 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       ? arrayTextLine[i].arrayText[3]?.text
                       : columnaUnidadVacia,
                 };
-                console.log(arrayTextLine[i].arrayText[1].left);
+
+                contConfidence += x.confidence;
+                totalDatos++;
+                jsonClient.descuentos.confidence = (
+                  contConfidence / totalDatos
+                ).toFixed(2);
                 jsonClient.descuentos.list.push(elementDescuentos);
               }
             });
           }
 
           // ############################################
-          console.log(
-            "JSON COMPANY ----------------------------------------------------------"
-          );
-          console.log(jsonCompany);
+          // console.log(
+          //   "JSON COMPANY ----------------------------------------------------------"
+          // );
+          // console.log(jsonCompany);
 
-          console.log(
-            "JSON CLIENT ----------------------------------------------------------"
-          );
-          console.log(jsonClient.descuentos);
-          // console.log(arrayTextLine[2]);
-          // arrayTextLine.map((x) => console.log(x));
-          jsonToRead ? resolve(arrayTextLine) : resolve(false);
+          // console.log(
+          //   "JSON CLIENT ----------------------------------------------------------"
+          // );
+          // console.log(jsonClient.devengos);
+
+          resultArray.push(jsonClient);
+          resultArray.push(jsonCompany);
+          // console.log("JSON A EXPORTAR");
+          // console.log(resultArray);
+          jsonToRead ? resolve(resultArray) : resolve(false);
         })();
       }
     } catch (error) {
