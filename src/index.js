@@ -5,28 +5,30 @@ async function worker() {
   try {
     // GENERAR .JSON AUTOMATIZADOS
     await fs.readdir("src/docs", (err, files) => {
-      if (err) {
-        console.log("No existe el directorio 'docs'");
-        return err;
-      }
-      files.map((f) => {
-        let nameFile = f.split(".")[0];
-        // console.log(nameFile);
-
-        readPaymentgSupport(`src/docs/${f}`).then((response) => {
-          if (response) {
-            console.log(
-              ":::::::::::::::    file generated    ::::::::::::::::::"
-            );
-            fs.writeFileSync(`json/${nameFile}.json`, JSON.stringify(response));
-          }
+      setInterval(() => {
+        if (err) {
+          console.log("No existe el directorio 'docs'");
+          return err;
+        }
+        files.map((f) => {
+          let nameFile = f.split(".")[0];
+          readPaymentgSupport(`src/docs/${f}`).then((response) => {
+            if (response) {
+              console.log(
+                ":::::::::::::::    file generated    ::::::::::::::::::"
+              );
+              fs.writeFileSync(
+                `json/${nameFile}.json`,
+                JSON.stringify(response)
+              );
+            }
+          });
         });
-      });
+      }, 5000);
     });
-
     // ----- AWS PATH FILE
-    // //let awsPathFile="https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
-    // let awsPathFile = "src/docs/paymentSupport-e0d86fabde5a4c1d.jpg";
+    // let awsPathFile="https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
+    // let awsPathFile = "src/docs/paymentSupport-1fcc9abf2829c27d.jpg";
     // await readPaymentgSupport(awsPathFile).then((response) => {
     //   if (response) {
     //     console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");

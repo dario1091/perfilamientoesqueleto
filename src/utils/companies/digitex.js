@@ -113,11 +113,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   jsonCompany.nit = block.Text.slice(4);
                 }
                 if (block.Text.toUpperCase().startsWith("PERÍODO PAGO")) {
-                  jsonClient.nomina = block.Text.split(" ")[2];
-                }
-                if (block.Text.toUpperCase().startsWith("BANCO")) {
-                  jsonClient.banco.account = block.Text.replace(/\D/g, "");
-                  jsonClient.banco.name = block.Text.replace(/[0-9]+/g, "");
+                  jsonClient.nomina = block.Text.split(" ")[4];
                 }
                 if (block.Text.toUpperCase().startsWith("CARGO")) {
                   jsonClient.cargo = block.Text.split(":")[1];
@@ -186,13 +182,15 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               if (x.text === "Empleado") {
                 columna = 0;
-                jsonClient.name = arrayTextLine[i + 1].arrayText[columna].text;
-              }
-
-              if (x.text === "Ingreso") {
-                columna = 0;
-                jsonClient.fechaIngreso =
-                  arrayTextLine[bloque].arrayText[columna].text;
+                if (
+                  arrayTextLine[i + 1].arrayText[columna].text === "Comdata"
+                ) {
+                  jsonClient.name =
+                    arrayTextLine[i + 2].arrayText[columna].text;
+                } else {
+                  jsonClient.name =
+                    arrayTextLine[bloque].arrayText[columna].text;
+                }
               }
 
               if (x.text === "EPS") {
@@ -201,9 +199,15 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
+              if (x.text === "Ingreso") {
+                columna = 0;
+                jsonClient.fechaIngreso =
+                  arrayTextLine[bloque].arrayText[columna].text;
+              }
+
               if (x.text === "AFP") {
                 columna = 2;
-                jsonClient.pension = jsonClient.salud =
+                jsonClient.pension =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
@@ -231,11 +235,36 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
+              if (
+                arrayTextLine[i].arrayText[0].text
+                  .toUpperCase()
+                  .startsWith("BANCO")
+              ) {
+                columna = 0;
+                if (!arrayTextLine[bloque]) {
+                  // Si el numero de cuenta está en la misma linea
+                  jsonClient.banco.account = arrayTextLine[i].arrayText[
+                    columna
+                  ].text.replace(/\D/g, "");
+                  jsonClient.banco.name = arrayTextLine[i].arrayText[
+                    columna
+                  ].text.replace(/[0-9]+/g, "");
+                } else {
+                  jsonClient.banco.name = arrayTextLine[i].arrayText[
+                    columna
+                  ].text.replace(/[0-9]+/g, "");
+
+                  //Se guarda el numero de cuenta de la siguiente linea
+                  jsonClient.banco.account = arrayTextLine[bloque].arrayText[
+                    columna
+                  ].text.replace(/\D/g, "");
+                }
+              }
+
+              // Calculo de puntuacion de confiabilidad de lectura del documento
               contConfidence += x.confidence;
               totalDatos++;
               jsonClient.confidence = (contConfidence / totalDatos).toFixed(2);
-
-              // Calculo de puntuacion de confiabilidad de lectura del documento
             });
           }
 
@@ -351,6 +380,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           resultArray.push(jsonCompany);
           // console.log("JSON A EXPORTAR");
           // console.log(resultArray);
+
+          // arrayTextLine.map((x) => console.log(x));
           jsonToRead ? resolve(resultArray) : resolve(false);
         })();
       }
