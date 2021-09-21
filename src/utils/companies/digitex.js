@@ -73,6 +73,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 block.BlockType === "LINE" &&
                 block.Geometry.BoundingBox.Left < 0.5
               ) {
+                // console.log(block);
                 let strTop =
                   block.Geometry.BoundingBox.Top.toString().substring(0, 6);
 
@@ -110,11 +111,20 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   jsonCompany.name = block.Text;
                 }
                 if (block.Text.toUpperCase().startsWith("NIT")) {
-                  jsonCompany.nit = block.Text.slice(4);
+                  if (block.Text.includes(":")) {
+                    jsonCompany.nit = block.Text.slice(4);
+                  } else {
+                    jsonCompany.nit = block.Text.slice(3);
+                  }
                 }
-                if (block.Text.toUpperCase().startsWith("PERÍODO PAGO")) {
-                  jsonClient.nomina = block.Text.split(" ")[4];
-                }
+                // if (
+                //   block.Text.toUpperCase().startsWith("PERÍODO PAGO") ||
+                //   block.Text.toUpperCase().startsWith("PERIODO PAGO")
+                // ) {
+                //   jsonClient.nomina = block.Text.split(" ")[4];
+                //   console.log("NO HAY NOMINA");
+                //   console.log(block.Text);
+                // }
                 if (block.Text.toUpperCase().startsWith("CARGO")) {
                   jsonClient.cargo = block.Text.split(":")[1];
                 }
@@ -217,7 +227,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
-              if (x.text === "Neto a Pagar") {
+              if (x.text === "Neto a Pagar" || x.text === "Neto Pagar") {
                 columna = 3;
                 jsonClient.sueldoNeto =
                   arrayTextLine[bloque].arrayText[columna].text;
@@ -233,6 +243,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 columna = 3;
                 jsonClient.documentNumber =
                   arrayTextLine[bloque].arrayText[columna].text;
+              }
+
+              if (x.text.toUpperCase().startsWith("PERÍODO PAGO:")) {
+                columna = 0;
+                if (x.text.split(" ")[4] === undefined) {
+                  // "El periodo de pago viene en distintas lineas";
+                  columna = 1;
+                  jsonClient.nomina =
+                    arrayTextLine[i].arrayText[columna].text.split(" ")[2];
+                } else {
+                  jsonClient.nomina =
+                    arrayTextLine[i].arrayText[columna].text.split(" ")[4];
+                }
               }
 
               if (
@@ -346,7 +369,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       ? 0
                       : arrayTextLine[i].arrayText[1]?.text,
                   precio:
-                    arrayTextLine[i].arrayText[2]?.left >= 0.28
+                    arrayTextLine[i].arrayText[2]?.left >= 0.265
                       ? arrayTextLine[i].arrayText[2]?.text
                       : 0,
                   descuentos:
@@ -355,6 +378,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       : columnaUnidadVacia,
                 };
 
+                // console.log(arrayTextLine[i].arrayText[2]?.left);
                 contConfidence += x.confidence;
                 totalDatos++;
                 jsonClient.descuentos.confidence = (
@@ -375,6 +399,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           //   "JSON CLIENT ----------------------------------------------------------"
           // );
           // console.log(jsonClient.devengos);
+          // console.log(jsonClient.descuentos);
 
           resultArray.push(jsonClient);
           resultArray.push(jsonCompany);
