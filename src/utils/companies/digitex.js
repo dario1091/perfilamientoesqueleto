@@ -81,7 +81,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             }
             // Si el documento viene en formato de dos hojas
             if (unicaHoja) {
-              console.log("Es unica hoja");
+              // console.log("Es unica hoja");
               for (const block of jsonToRead.Blocks) {
                 if (block.BlockType === "LINE") {
                   let strTop =
@@ -129,12 +129,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
               // ################################################## fin for
             } else {
-              console.log("Formato divido");
+              // console.log("Formato divido");
               for (const block of jsonToRead.Blocks) {
                 if (
                   block.BlockType === "LINE" &&
                   block.Geometry.BoundingBox.Left < 0.5
                 ) {
+                  // console.log(block);
                   let strTop =
                     block.Geometry.BoundingBox.Top.toString().substring(0, 6);
 
@@ -210,16 +211,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * 0 -> Es la primera ya que se devuelve como un Array
            */
 
+          // NOTA: LOS TEXTOS QUE NO TIENEN COHERENCIA EN LAS
+          // VALIDACIONES SON CASOS ESPECIFICOS DE DOCUMENTOS
+          // QUE NO SON BIEN LEIDOS
+
           /**
            * sacamos todas las lineas leidas
            */
-
           for (let i = 0; i < arrayTextLine.length; i++) {
             let bloque = i + 1;
             let columna = 0;
 
             arrayTextLine[i].arrayText.map((x) => {
-              if (x.text === "Total Devengos") {
+              if (x.text === "Total Devengos" || x.text === "Total Devenges") {
                 columna = 1;
                 jsonClient.devengos.subtotal =
                   arrayTextLine[bloque].arrayText[columna].text;
@@ -249,7 +253,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
-              if (x.text === "Ingreso") {
+              if (x.text === "Ingreso" || x.text === "Ingreao") {
                 jsonClient.fechaIngreso =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
@@ -265,13 +269,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
-              if (x.text === "Neto a Pagar" || x.text === "Neto Pagar") {
+              if (
+                x.text === "Neto a Pagar" ||
+                x.text === "Neto Pagar" ||
+                x.text === "Noto Pagar"
+              ) {
                 columna = 3;
                 jsonClient.sueldoNeto =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
-              if (x.text === "Sueldo Base") {
+              if (x.text === "Sueldo Base" || x.text === "Sualdo Base") {
                 columna = 4;
                 jsonClient.basico =
                   arrayTextLine[bloque].arrayText[columna].text;
@@ -283,7 +291,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
-              if (x.text.toUpperCase().startsWith("PERÍODO PAGO:")) {
+              if (
+                x.text.toUpperCase().startsWith("PERIODO PAGO:") ||
+                x.text.toUpperCase().startsWith("PERÍODO PAGO:") ||
+                x.text.toUpperCase().startsWith("PERÍODO PAGA:")
+              ) {
                 columna = 0;
                 if (x.text.split(" ")[4] === undefined) {
                   // "El periodo de pago viene en distintas lineas";
@@ -303,8 +315,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   .startsWith("BANCO")
               ) {
                 let texto = arrayTextLine[i].arrayText[0].text;
+                //Si la linea contiene numeros es es el numero de cuenta
                 if (!isNaN(parseInt(texto.replace(/\D/g, "")))) {
-                  console.log("contiene numeros");
                   jsonClient.banco.account = arrayTextLine[i].arrayText[
                     columna
                   ].text.replace(/\D/g, "");
@@ -312,19 +324,22 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     columna
                   ].text.replace(/[0-9]+/g, "");
                 } else {
-                  console.log("no contiene numeros");
+                  //Se guarda el numero de cuenta de la siguiente linea
+
                   jsonClient.banco.name = arrayTextLine[i].arrayText[
                     columna
                   ].text.replace(/[0-9]+/g, "");
 
-                  //Se guarda el numero de cuenta de la siguiente linea
                   jsonClient.banco.account = arrayTextLine[bloque].arrayText[
                     columna
                   ].text.replace(/\D/g, "");
                 }
               }
 
-              if (x.text.toUpperCase().includes("S.A.S")) {
+              if (
+                x.text.toUpperCase().includes("S.A.S") ||
+                x.text.toUpperCase().includes("DIGITEX")
+              ) {
                 jsonCompany.name = arrayTextLine[i].arrayText[columna].text;
               }
 
@@ -371,6 +386,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let elementDescuentos = {};
 
+          /**
+           * Objeto que guarda los elementos que no son ni devengos
+           * ni descuentos
+           */
+          let norDevNorDesc = {};
+
           // Recorriendo la tabla
 
           /**
@@ -394,14 +415,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * Indices de referencia de la tabla
            */
           let leftColumnaPrecio = 0;
+          let leftColumnaUnidades = 0;
 
           for (let i = init + 1; i < end; i++) {
+            leftColumnaUnidades = arrayTextLine[i].arrayText[1]?.left;
+
             /**
              * Variable ternaria que pregunta si la columna unidad es vacia
              * guarda el valor de devengo/descuento en su respectivo campo
              */
             let columnaUnidadVacia =
-              arrayTextLine[i].arrayText[1]?.left >= 0.24
+              arrayTextLine[i].arrayText[1]?.left >= leftColumnaUnidades
                 ? arrayTextLine[i].arrayText[1]?.text
                 : 0;
 
@@ -412,8 +436,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
             //Recorrido de cada columna para guardar los datos
             arrayTextLine[i].arrayText.map((x) => {
-              //TODO: Datos que no son ni devengos ni descuentos
-
               // List de devengos
               if (x.left > leftEarns && x.left < leftDiscounts) {
                 // console.log(arrayTextLine[i].arrayText[0].text);
@@ -442,7 +464,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
 
               // List de descuentos
-              if (x.left >= leftDiscounts) {
+              else if (x.left >= leftDiscounts) {
                 elementDescuentos = {
                   concepto: arrayTextLine[i].arrayText[0]?.text,
                   unidades:
@@ -467,6 +489,24 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 jsonClient.descuentos.list.push(elementDescuentos);
               }
             });
+            // Datos que no son ni devengos ni descuentos y se
+            // almacenan en descuentos
+            if (
+              arrayTextLine[i].arrayText[3]?.text === undefined &&
+              arrayTextLine[i].arrayText[4]?.text === undefined &&
+              arrayTextLine[i].arrayText[1].left < leftDiscounts
+            ) {
+              norDevNorDesc = {
+                concepto: arrayTextLine[i].arrayText[0]?.text,
+                unidades: arrayTextLine[i].arrayText[1]?.text,
+                precio:
+                  arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
+                    ? arrayTextLine[i].arrayText[2]?.text
+                    : 0,
+                descuentos: 0,
+              };
+              jsonClient.descuentos.list.push(norDevNorDesc);
+            }
           }
 
           // console.log(jsonClient.devengos);
