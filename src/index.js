@@ -30,7 +30,7 @@ async function worker() {
 
     // ----- AWS PATH FILE
     // let awsPathFile="https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
-    let awsPathFile = "src/docs/contactamos/1/paymentSupport (1) 1.jpg";
+    let awsPathFile = "src/docs/contactamos/1/paymentSupport-0a3c4a4eabe02754.jpg";
     await readPaymentgSupport(awsPathFile).then((response) => {
       if (response) {
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
@@ -41,7 +41,7 @@ async function worker() {
         //   "json/digitex/2/30570-1-1030556844-20200804.json",
         //   JSON.stringify(response)
         // );
-        console.log(JSON.parse(JSON.stringify(response)));
+        // console.log(JSON.parse(JSON.stringify(response)));
         console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
       }
     });

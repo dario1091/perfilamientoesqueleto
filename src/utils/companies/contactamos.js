@@ -104,6 +104,20 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine.push(newElem);
                 }
 
+                // Captura de valores left devengos
+                if (
+                  block.Text.toUpperCase().startsWith(
+                    "CONCEP DESCRIPCION CONCEPTO"
+                  )
+                ) {
+                  leftEarns = block.Geometry.BoundingBox.Left.toFixed(2);
+                }
+
+                // Captura de valores left descuentos
+                if (block.Text.toUpperCase().startsWith("CENTRO COSTO")) {
+                  leftDiscounts = block.Geometry.BoundingBox.Left.toFixed(2);
+                }
+
                 // #################################################### fin if
               }
             }
@@ -146,8 +160,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
             // EL BLOQUE TIENE NETO
 
-            leftEarns = arrayTextLine[bloque].arrayText[0]?.left;
-            leftDiscounts = arrayTextLine[bloque].arrayText[1]?.left;
+            // leftEarns = arrayTextLine[bloque].arrayText[0]?.left;
+            // leftDiscounts = arrayTextLine[bloque].arrayText[1]?.left;
 
             jsonClient.devengos.subtotal =
               arrayTextLine[bloque].arrayText[0]?.text.split("$ ")[1];
@@ -156,8 +170,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           } else {
             // EL BLOQUE TIENE LA REFERENCIA DE SUBTOTALES
 
-            leftEarns = arrayTextLine[end].arrayText[0]?.left;
-            leftDiscounts = arrayTextLine[end].arrayText[1]?.left;
+            // leftEarns = arrayTextLine[end].arrayText[0]?.left;
+            // leftDiscounts = arrayTextLine[end].arrayText[1]?.left;
 
             jsonClient.devengos.subtotal =
               arrayTextLine[end].arrayText[0]?.text.split("$ ")[1];
@@ -185,7 +199,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * sacamos todas las lineas leidas
            */
           for (let i = 0; i < arrayTextLine.length; i++) {
-            let bloque = i + 1;
+            let block = i + 1;
             let columna = 0;
 
             arrayTextLine[i].arrayText.map((x) => {
@@ -195,14 +209,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 // Si el bloque de abajo empieza con el codigo 0 viene el nombre del convenio
                 if (
-                  arrayTextLine[bloque].arrayText[columna]?.text.startsWith("0")
+                  arrayTextLine[block].arrayText[columna]?.text.startsWith(
+                    "0"
+                  ) ||
+                  arrayTextLine[block].arrayText[columna]?.text.startsWith("1")
                 ) {
                   codigoDividido =
-                    arrayTextLine[bloque].arrayText[columna]?.text.split(" ");
+                    arrayTextLine[block].arrayText[columna]?.text.split(" ");
                 } else {
                   // El bloque de abajo viene con otro texto o marca de agua
                   codigoDividido =
-                    arrayTextLine[bloque + 1].arrayText[columna]?.text.split(
+                    arrayTextLine[block + 1].arrayText[columna]?.text.split(
                       " "
                     );
                 }
@@ -264,7 +281,15 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // GUARDANDO FECHA DE NOMINA ###################### -------------------------------
               if (x.text.includes("PERIODO:")) {
-                let capturaFecha = x.text.split(" ")[3];
+                let lengthCadena = x.text.split(" ").length;
+                let capturaFecha = "";
+                // Codigo periodo pegado a la primera fecha
+                if (lengthCadena === 4) {
+                  capturaFecha = x.text.split(" ")[3];
+                } else {
+                  // Codigo periodo despegado a la primera fecha
+                  capturaFecha = x.text.split(" ")[4];
+                }
                 let dividirFecha = capturaFecha.split("(")[1];
                 let fecha = dividirFecha.split(")")[0];
                 jsonClient.nomina = fecha;
@@ -337,23 +362,108 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * vacio se guarda como 0 y si hay un dato que no corresponde a la respectiva
            * columna se corre a la columna perteneciente
            *
-           * Siendo asi:
-           *
+           * Siendo asi 4 columnas para devengos y 4 columnas para deducciones
+           *                                  Devengos
            * arrayTextLine[i].arrayText[0] -> Columna Concepto
-           * arrayTextLine[i].arrayText[1] -> Columna Unidades
-           * arrayTextLine[i].arrayText[2] -> Columna Precio
-           * arrayTextLine[i].arrayText[3] -> Columna Devengos o Descuento
+           * arrayTextLine[i].arrayText[1] -> Columna Descripcion
+           * arrayTextLine[i].arrayText[2] -> Columna Cantidad
+           * arrayTextLine[i].arrayText[3] -> Columna Devengos
+           *
+           *                                  Deducciones
+           * arrayTextLine[i].arrayText[4] -> Columna Centro costo
+           * arrayTextLine[i].arrayText[5] -> Columna Concepto
+           * arrayTextLine[i].arrayText[6] -> Columna Descripcion
+           * arrayTextLine[i].arrayText[7] -> Columna Descuento
            */
 
-          // for (let i = init + 1; i < end; i++) {
-          //   console.log(arrayTextLine[i]);
-          // }
+          //TODO: LECTURA DE DEVENGOS Y DEDUCCIONES
+          for (let i = init + 1; i < end; i++) {
+            // Valores de columnas devengo
+            let concepDevengo = "";
+            let descripcionDevengo = "";
+            let cantidadDevengo = "";
+            let devengo = "";
+
+            // Valores de columnas deducciones
+            let centroCosto = "";
+            let concepDeduccion = "";
+            let descripcionDeduccion = "";
+            let deduccion = "";
+
+            // console.log(arrayTextLine[i].arrayText[2]);
+
+            arrayTextLine[i].arrayText.map((x) => {
+              // List Devengos
+              if (x.left >= leftEarns && x.left < leftDiscounts) {
+                console.log(x);
+                /**
+                 * Variable condicional, si el valor de devengos viene en la
+                 * posicion de la columna cantidad
+                 */
+                let comprobarDevengoEnCantidad = arrayTextLine[
+                  i
+                ].arrayText[2]?.text.includes("$ ")
+                  ? 0
+                  : arrayTextLine[i].arrayText[2]?.text;
+
+                // Columna Concepto
+                if (arrayTextLine[i].arrayText[0]?.left >= x.left) {
+                  concepDevengo = x.text;
+                }
+
+                // Columna Descripcion concepto
+                if (arrayTextLine[i].arrayText[1]?.left >= x.left) {
+                  descripcionDevengo = x.text;
+                }
+
+                // Columna Cantidad
+                if (arrayTextLine[i].arrayText[2]?.left === x.left) {
+                  cantidadDevengo = x.text;
+                }
+
+                // Columna devengos
+                if (arrayTextLine[i].arrayText[2]?.left <= x.left) {
+                  devengo = x.text;
+                } else {
+                  devengo = 0;
+                }
+
+                elementDevengos = {
+                  concepDevengo,
+                  descripcionDevengo,
+                  cantidadDevengo:
+                    cantidadDevengo === "" ? 0 : comprobarDevengoEnCantidad,
+                  devengo,
+                };
+
+                contConfidence += x.confidence;
+                totalDatos++;
+                jsonClient.devengos.confidence = (
+                  contConfidence / totalDatos
+                ).toFixed(2);
+              }
+
+              // List deducciones
+              if (x.left >= leftDiscounts) {
+                contConfidence += x.confidence;
+                totalDatos++;
+                jsonClient.descuentos.confidence = (
+                  contConfidence / totalDatos
+                ).toFixed(2);
+              }
+            });
+
+            jsonClient.devengos.list.push(elementDevengos);
+            //TODO: // jsonClient.descuentos.list.push(elementDescuentos);
+          }
+
+          // MUESTREO TEMPORAL
+          console.log(jsonClient.devengos);
+          // console.log(jsonClient.descuentos);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS AL ARRAY
           resultArray.push(jsonClient);
           resultArray.push(jsonCompany);
-          // console.log("JSON A EXPORTAR");
-          // console.log(resultArray);
 
           // arrayTextLine.map((x) => console.log(x));
           jsonToRead ? resolve(resultArray) : resolve(false);
