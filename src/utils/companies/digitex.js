@@ -30,36 +30,40 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
       let totalDatos = 0;
 
       let jsonClient = {
-        name: "",
-        banco: {
+        client: {
           name: "",
-          account: "",
-        },
-        cargo: "",
-        salud: "",
-        basico: "",
-        nomina: "",
-        pension: "",
-        convenio: "",
-        fechaIngreso: "",
-        devengos: {
-          list: [],
-          subtotal: null,
+          banco: {
+            name: "",
+            account: "",
+          },
+          cargo: "",
+          salud: "",
+          basico: "",
+          nomina: "",
+          pension: "",
+          convenio: "",
+          fechaIngreso: "",
+          devengos: {
+            list: [],
+            subtotal: null,
+            confidence: null,
+          },
           confidence: null,
+          sueldoNeto: null,
+          descuentos: {
+            list: [],
+            subtotal: null,
+            confidence: null,
+          },
+          documentNumber: "",
         },
-        confidence: null,
-        sueldoNeto: null,
-        descuentos: {
-          list: [],
-          subtotal: null,
-          confidence: null,
-        },
-        documentNumber: "",
       };
 
       let jsonCompany = {
-        nit: "",
-        name: "",
+        company: {
+          nit: "",
+          name: "",
+        },
       };
 
       if (ext === ".png" || ext === ".jpeg" || ext === ".jpg") {
@@ -225,13 +229,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             arrayTextLine[i].arrayText.map((x) => {
               if (x.text === "Total Devengos" || x.text === "Total Devenges") {
                 columna = 1;
-                jsonClient.devengos.subtotal =
+                jsonClient.client.devengos.subtotal =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
               if (x.text === "Total Descuentos") {
                 columna = 2;
-                jsonClient.descuentos.subtotal =
+                jsonClient.client.descuentos.subtotal =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
@@ -239,33 +243,33 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 if (
                   arrayTextLine[i + 1].arrayText[columna].text === "Comdata"
                 ) {
-                  jsonClient.name =
+                  jsonClient.client.name =
                     arrayTextLine[i + 2].arrayText[columna].text;
                 } else {
-                  jsonClient.name =
+                  jsonClient.client.name =
                     arrayTextLine[bloque].arrayText[columna].text;
                 }
               }
 
               if (x.text === "EPS") {
                 columna = 1;
-                jsonClient.salud =
+                jsonClient.client.salud =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
               if (x.text === "Ingreso" || x.text === "Ingreao") {
-                jsonClient.fechaIngreso =
+                jsonClient.client.fechaIngreso =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
               if (x.text === "AFP") {
                 columna = 2;
-                jsonClient.pension =
+                jsonClient.client.pension =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
               if (x.text === "Unidad Org.") {
-                jsonClient.convenio =
+                jsonClient.client.convenio =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
@@ -275,19 +279,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 x.text === "Noto Pagar"
               ) {
                 columna = 3;
-                jsonClient.sueldoNeto =
+                jsonClient.client.sueldoNeto =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
               if (x.text === "Sueldo Base" || x.text === "Sualdo Base") {
                 columna = 4;
-                jsonClient.basico =
+                jsonClient.client.basico =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
               if (x.text === "Núm. Documento") {
                 columna = 3;
-                jsonClient.documentNumber =
+                jsonClient.client.documentNumber =
                   arrayTextLine[bloque].arrayText[columna].text;
               }
 
@@ -300,10 +304,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 if (x.text.split(" ")[4] === undefined) {
                   // "El periodo de pago viene en distintas lineas";
                   columna = 1;
-                  jsonClient.nomina =
+                  jsonClient.client.nomina =
                     arrayTextLine[i].arrayText[columna].text.split(" ")[2];
                 } else {
-                  jsonClient.nomina =
+                  jsonClient.client.nomina =
                     arrayTextLine[i].arrayText[columna].text.split(" ")[4];
                 }
               }
@@ -317,22 +321,22 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let texto = arrayTextLine[i].arrayText[0].text;
                 //Si la linea contiene numeros es es el numero de cuenta
                 if (!isNaN(parseInt(texto.replace(/\D/g, "")))) {
-                  jsonClient.banco.account = arrayTextLine[i].arrayText[
+                  jsonClient.client.banco.account = arrayTextLine[i].arrayText[
                     columna
                   ].text.replace(/\D/g, "");
-                  jsonClient.banco.name = arrayTextLine[i].arrayText[
+                  jsonClient.client.banco.name = arrayTextLine[i].arrayText[
                     columna
                   ].text.replace(/[0-9]+/g, "");
                 } else {
                   //Se guarda el numero de cuenta de la siguiente linea
 
-                  jsonClient.banco.name = arrayTextLine[i].arrayText[
+                  jsonClient.client.banco.name = arrayTextLine[i].arrayText[
                     columna
                   ].text.replace(/[0-9]+/g, "");
 
-                  jsonClient.banco.account = arrayTextLine[bloque].arrayText[
-                    columna
-                  ].text.replace(/\D/g, "");
+                  jsonClient.client.banco.account = arrayTextLine[
+                    bloque
+                  ].arrayText[columna].text.replace(/\D/g, "");
                 }
               }
 
@@ -340,16 +344,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 x.text.toUpperCase().includes("S.A.S") ||
                 x.text.toUpperCase().includes("DIGITEX")
               ) {
-                jsonCompany.name = arrayTextLine[i].arrayText[columna].text;
+                jsonCompany.company.name =
+                  arrayTextLine[i].arrayText[columna].text;
               }
 
               if (x.text.toUpperCase().startsWith("NIT")) {
                 columna = 0;
                 if (x.text.includes(":")) {
-                  jsonCompany.nit =
+                  jsonCompany.company.nit =
                     arrayTextLine[i].arrayText[columna].text.slice(4);
                 } else {
-                  jsonCompany.nit =
+                  jsonCompany.company.nit =
                     arrayTextLine[i].arrayText[columna].text.slice(3);
                 }
               }
@@ -358,11 +363,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 //Si trae 2 bloques, tomar la columna 1
                 if (arrayTextLine[i].arrayText.length === 2) {
                   columna = 1;
-                  jsonClient.cargo =
+                  jsonClient.client.cargo =
                     arrayTextLine[i].arrayText[columna].text.split(":")[1];
                 } else {
                   //Si solo trae 1, la columna 0
-                  jsonClient.cargo =
+                  jsonClient.client.cargo =
                     arrayTextLine[i].arrayText[columna].text.split(":")[1];
                 }
               }
@@ -370,7 +375,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // Calculo de puntuacion de confiabilidad de lectura del documento
               contConfidence += x.confidence;
               totalDatos++;
-              jsonClient.confidence = (contConfidence / totalDatos).toFixed(2);
+              jsonClient.client.confidence = (
+                contConfidence / totalDatos
+              ).toFixed(2);
             });
           }
 
@@ -457,10 +464,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 contConfidence += x.confidence;
                 totalDatos++;
-                jsonClient.devengos.confidence = (
+                jsonClient.client.devengos.confidence = (
                   contConfidence / totalDatos
                 ).toFixed(2);
-                jsonClient.devengos.list.push(elementDevengos);
+                jsonClient.client.devengos.list.push(elementDevengos);
               }
 
               // List de descuentos
@@ -483,10 +490,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 contConfidence += x.confidence;
                 totalDatos++;
-                jsonClient.descuentos.confidence = (
+                jsonClient.client.descuentos.confidence = (
                   contConfidence / totalDatos
                 ).toFixed(2);
-                jsonClient.descuentos.list.push(elementDescuentos);
+                jsonClient.client.descuentos.list.push(elementDescuentos);
               }
             });
             // Datos que no son ni devengos ni descuentos y se
@@ -505,12 +512,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     : 0,
                 descuentos: 0,
               };
-              jsonClient.descuentos.list.push(norDevNorDesc);
+              jsonClient.client.descuentos.list.push(norDevNorDesc);
             }
           }
 
-          // console.log(jsonClient.devengos);
-          // console.log(jsonClient.descuentos);
+          // console.log(jsonClient.client.devengos);
+          // console.log(jsonClient.client.descuentos);
 
           resultArray.push(jsonClient);
           resultArray.push(jsonCompany);
