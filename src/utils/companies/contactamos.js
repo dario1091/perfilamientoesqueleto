@@ -11,7 +11,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
       /**
        * Json de resultado
        */
-      let resultArray = [];
+      let resultObject = {};
 
       /**
        * Left de devengos
@@ -26,41 +26,37 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
       let contConfidence = 0;
       let totalDatos = 0;
 
-      let jsonClient = {
-        client: {
+      let client = {
+        name: "",
+        banco: {
           name: "",
-          banco: {
-            name: "",
-            account: "",
-          },
-          cargo: "NO REGISTRA",
-          salud: "NO REGISTRA",
-          basico: "",
-          nomina: "",
-          pension: "NO REGISTRA",
-          convenio: "",
-          // fechaIngreso: "",
-          devengos: {
-            list: [],
-            subtotal: null,
-            confidence: null,
-          },
-          confidence: null,
-          sueldoNeto: null,
-          descuentos: {
-            list: [],
-            subtotal: null,
-            confidence: null,
-          },
-          documentNumber: "",
+          account: "",
         },
+        cargo: "NO REGISTRA",
+        salud: "NO REGISTRA",
+        basico: "",
+        nomina: "",
+        pension: "NO REGISTRA",
+        convenio: "",
+        // fechaIngreso: "",
+        devengos: {
+          list: [],
+          subtotal: null,
+          confidence: null,
+        },
+        confidence: null,
+        sueldoNeto: null,
+        descuentos: {
+          list: [],
+          subtotal: null,
+          confidence: null,
+        },
+        documentNumber: "",
       };
 
-      let jsonCompany = {
-        company: {
-          nit: "",
-          name: "",
-        },
+      let company = {
+        nit: "",
+        name: "",
       };
 
       if (ext === ".png" || ext === ".jpeg" || ext === ".jpg") {
@@ -131,13 +127,22 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           /**
            * Posición inicial de tabla de dev/ded
            */
-          let init = arrayTextLine
-            .map((e) => {
-              return e.arrayText[0].text;
-            })
-            .indexOf("CONCEP DESCRIPCION CONCEPTO");
-
-          // console.log(init);
+          let init =
+            arrayTextLine
+              .map((e) => {
+                return e.arrayText[0].text;
+              })
+              .indexOf("CONCEP DESCRIPCIÓN CONCEPTO") === -1
+              ? arrayTextLine
+                  .map((e) => {
+                    return e.arrayText[0].text;
+                  })
+                  .indexOf("CONCEP DESCRIPCION CONCEPTO")
+              : arrayTextLine
+                  .map((e) => {
+                    return e.arrayText[0].text;
+                  })
+                  .indexOf("CONCEP DESCRIPCIÓN CONCEPTO");
 
           /**
            * Posición final de tabla de dev/ded y campo
@@ -155,8 +160,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             ? calcEnd - 4
             : calcEnd - 3;
 
-          // console.log(end);
-
           // GUARDANDO REFERENCIAS DE SUBTOTALES Y LEFTS DE DEVENGOS Y DEDUCCIONES
 
           /**
@@ -164,28 +167,21 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let bloque = 0;
           // Subtotal de devengos y descuentos(deducciones)
-          if (arrayTextLine[end].arrayText[0]?.text.includes("NETO")) {
+          if (arrayTextLine[end].arrayText[0]?.text.includes("NETO:")) {
             bloque = end - 1;
-
             // EL BLOQUE TIENE NETO
-
-            // leftEarns = arrayTextLine[bloque].arrayText[0]?.left;
-            // leftDiscounts = arrayTextLine[bloque].arrayText[1]?.left;
-
-            jsonClient.client.devengos.subtotal =
+            client.devengos.subtotal =
               arrayTextLine[bloque].arrayText[0]?.text.split("$ ")[1];
-            jsonClient.client.descuentos.subtotal =
+            client.descuentos.subtotal =
               arrayTextLine[bloque].arrayText[1]?.text.split("$ ")[1];
           } else {
             // EL BLOQUE TIENE LA REFERENCIA DE SUBTOTALES
-
-            // leftEarns = arrayTextLine[end].arrayText[0]?.left;
-            // leftDiscounts = arrayTextLine[end].arrayText[1]?.left;
-
-            jsonClient.client.devengos.subtotal =
-              arrayTextLine[end].arrayText[0]?.text.split("$ ")[1];
-            jsonClient.client.descuentos.subtotal =
-              arrayTextLine[end].arrayText[1]?.text.split("$ ")[1];
+            client.devengos.subtotal = arrayTextLine[end].arrayText[0]?.text
+              .split("$")[1]
+              .trim();
+            client.descuentos.subtotal = arrayTextLine[end].arrayText[1]?.text
+              .split("$")[1]
+              .trim();
           }
 
           /**
@@ -236,7 +232,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let textConvenioSeparado = codigoDividido.slice(2);
                 let textConvenio = textConvenioSeparado.join(" ");
 
-                jsonClient.client.convenio = textConvenio;
+                client.convenio = textConvenio;
               }
 
               // GUARDANDO NOMBRE, CEDULA, SALARIO BASE (DEPENDIENDO DE)
@@ -248,43 +244,43 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   // Sueldo en la misma linea
                   let obtenerSueldo = textOtroBloque.split("$ ")[1];
                   let sueldo = obtenerSueldo.split(" ")[0];
-                  jsonClient.client.basico = sueldo;
+                  client.basico = sueldo;
                 } else {
                   // Guardando sueldo base
-                  jsonClient.client.basico = x.text.split("$ ")[1];
+                  client.basico = x.text.split("$ ")[1];
                 }
 
                 // Guardando numero de cedula
                 let textInicioDocumento = x.text.split("(")[1];
                 let numDocumento = textInicioDocumento.split(")")[0];
-                jsonClient.client.documentNumber = numDocumento;
+                client.documentNumber = numDocumento;
 
                 // Guardando nombre del cliente
                 let nameSeparado = x.text.split(":")[2].trim();
                 let name = nameSeparado.split(" (")[0];
-                jsonClient.client.name = name;
+                client.name = name;
               }
 
               // GUARDANDO SUELDO NETO ###################### ----------------------------------
               if (x.text.includes("NETO: ")) {
-                jsonClient.client.sueldoNeto = x.text.split("$ ")[1];
+                client.sueldoNeto = x.text.split("$ ")[1];
               }
 
               // GUARDANDO NUMERO DE CUENTA BANCARIA Y NOMBRE
               // ###################### ----------------------------------
               if (x.text.toUpperCase().startsWith("MODO PAGO:")) {
                 if (x.text.includes("<Ninguno>")) {
-                  jsonClient.client.banco.account = "NO REGISTRA";
-                  jsonClient.client.banco.name = "NO REGISTRA";
+                  client.banco.account = "NO REGISTRA";
+                  client.banco.name = "NO REGISTRA";
                 } else {
-                  jsonClient.client.banco.account = arrayTextLine[i].arrayText[
+                  client.banco.account = arrayTextLine[i].arrayText[
                     columna
                   ].text.replace(/\D/g, "");
 
                   let separarCad = x.text.split(" ");
                   let ubicacionBanco = separarCad.indexOf("BANCO");
                   let name = separarCad.slice(ubicacionBanco);
-                  jsonClient.client.banco.name = name.join(" ");
+                  client.banco.name = name.join(" ");
                 }
               }
 
@@ -303,7 +299,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 }
                 let dividirFecha = capturaFecha.split("(")[1];
                 let fecha = dividirFecha.split(")")[0];
-                jsonClient.client.nomina = fecha;
+                client.nomina = fecha;
               }
 
               // GUARDANDO NOMBRE DE EMPRESA Y NIT ###################### ------------------
@@ -316,37 +312,36 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let dividirEmpresa = x.text.split(": ")[1];
                 let name = dividirEmpresa.split("(")[0];
 
-                // console.log(x);
-
                 // Si el nombre de la empresa no captura numeros
                 if (isNaN(parseInt(x.text.replace(/\D/g, "")))) {
                   // SOLO VIENE TEXTO
-                  jsonCompany.company.name = name;
+                  company.name = name;
 
-                  // se guarda el nit del bloque i + 4 (Caso especial)
+                  // se guarda el nit del bloque i + 6 (Caso especial)
                   // Y si viene el sueldo base junto con el
-                  let textOtroBloque = arrayTextLine[i + 4].arrayText[0]?.text;
-                  console.log(arrayTextLine[i + 6].arrayText[0]?.text);
-                  // console.log(textOtroBloque);
+                  // Sino esta en i+6, se guarda el caso especial i+4
+                  // let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
+                  let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
 
-                  if (textOtroBloque.includes("(")) {
-                    dividirNit = textOtroBloque.split("(")[1];
-                    // console.log(dividirNit);
-                    nit = dividirNit.split(")")[0];
-                    jsonCompany.company.nit = nit;
+                  if (nit6bloque.includes("(")) {
+                    dividirNit = nit6bloque.split("(")[1];
+                  } else {
+                    dividirNit = nit4bloque.split("(")[1];
                   }
+                  nit = dividirNit.split(")")[0];
+                  company.nit = nit;
                 } else {
                   // NOMBRE DE EMPRESA Y NIT EN LA MISMA LINEA
-                  jsonCompany.company.name = name;
+                  company.name = name;
 
                   dividirNit = x.text.split("(")[1];
                   nit = dividirNit.split(")")[0];
 
                   // Si el nit incluye un guión
                   if (x.text.includes("-")) {
-                    jsonCompany.company.nit = nit;
+                    company.nit = nit;
                   } else {
-                    jsonCompany.company.nit = x.text.replace(/\D/g, "");
+                    company.nit = x.text.replace(/\D/g, "");
                   }
                 }
               }
@@ -354,9 +349,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // Calculo de puntuacion de confiabilidad de lectura del documento
               contConfidence += x.confidence;
               totalDatos++;
-              jsonClient.client.confidence = (
-                contConfidence / totalDatos
-              ).toFixed(2);
+              client.confidence = (contConfidence / totalDatos).toFixed(2);
             });
           }
 
@@ -395,14 +388,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * arrayTextLine[i].arrayText[7] -> Columna Descuento
            */
 
-          // console.log(init);
-          // console.log(end);
+          console.log(init);
+          console.log(end);
           // console.log(arrayTextLine[end]);
 
           /**
            * Referencias left de las columnas de la tabla
            */
-          let leftConcepDev = arrayTextLine[init].arrayText[0]?.left;
+
           let leftCentroCosto;
           let leftCantidad;
           arrayTextLine[init].arrayText.map((x) => {
@@ -414,28 +407,148 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             }
           });
 
+          // SI NO HAY DATOS EN LA TABLA
+          if (init + 1 === end) {
+            client.devengos.confidence = "0";
+            client.descuentos.confidence = "0";
+          }
+
           //TODO: LECTURA DE DEVENGOS Y DEDUCCIONES
           for (let i = init + 1; i < end; i++) {
-            console.log(arrayTextLine[i]);
-            // Valores de columnas devengo
-            // let concepDevengo = "";
-            // let descripcionDevengo = "";
-            // let cantidadDevengo = "";
-            // let devengo = "";
+            /**
+             * Variables combinadas
+             */
 
-            // Valores de columnas deducciones
-            // let centroCosto = "";
-            // let concepDeduccion = "";
-            // let descripcionDeduccion = "";
-            // let deduccion = "";
+            // Bloques con todos los datos
+            if (arrayTextLine[i].arrayText.length >= 3) {
+              arrayTextLine[i].arrayText.map((x) => {
+                let desc;
+                // Captura de devengos
+                if (x.left >= leftEarns && x.left < leftDiscounts) {
+                  /**
+                   * Variable condicional, si el valor de Centro costo
+                   * está situado en la columna devengo
+                   */
+                  let comprobarCentroEnDevengo = arrayTextLine[
+                    i
+                  ].arrayText[2]?.text.includes("$")
+                    ? arrayTextLine[i].arrayText[2]?.text.split("$")[1].trim()
+                    : "0";
 
-            // console.log(arrayTextLine[i].arrayText[2]);
+                  /**
+                   * Variable condicional, si hay valores de deduccion en los datos de
+                   * devengos
+                   */
+                  let comprobarCamposDeDeduccion =
+                    arrayTextLine[i].arrayText[2]?.left >= leftDiscounts
+                      ? "0"
+                      : arrayTextLine[i].arrayText[2]?.text;
+                  // : comprobarDevengoEnCantidad;
 
-            // console.log(arrayTextLine[i]);
-            elementDevengos = {
-              concepDevengo: arrayTextLine[i].arrayText[0]?.text,
-            };
+                  /**
+                   * Variable condicional, si el valor del devengo viene
+                   * en la columna cantidad
+                   */
+                  let comprobarDevengoEnCantidad = arrayTextLine[
+                    i
+                  ].arrayText[2]?.text.includes("$")
+                    ? "0"
+                    : comprobarCamposDeDeduccion;
+                  // : arrayTextLine[i].arrayText[2]?.text;
 
+                  // Caso especial
+                  let comprobarDevengoConDobleSigno;
+                  if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
+                    comprobarDevengoConDobleSigno =
+                      arrayTextLine[i].arrayText[3]?.text.split("$")[1] === " "
+                        ? arrayTextLine[i].arrayText[3]?.text.split("$")[2].trim()
+                        : arrayTextLine[i].arrayText[3]?.text.split("$")[1].trim();
+                  }
+
+                  /**
+                   * Variable condicional, si el valor del devengo se encuentra
+                   * en otras columnas
+                   */
+                  let verificarPosicionDevengo =
+                    arrayTextLine[i].arrayText[3]?.left < leftCentroCosto
+                      ? comprobarDevengoConDobleSigno
+                      : comprobarCentroEnDevengo;
+
+                  /**
+                   * Variable condicional, si el valor del devengo viene
+                   * en la columna descripcion
+                   */
+                  let comprobarDevengoEnDescripcion = arrayTextLine[
+                    i
+                  ].arrayText[1]?.text.includes("$")
+                    ? "0"
+                    : verificarPosicionDevengo;
+
+                  /**
+                   * Variable que pregunta si el codigo está junto a la descripcion en
+                   * el bloque
+                   */
+                  desc = arrayTextLine[i].arrayText[0]?.text
+                    .replace(/[\d]+/g, "")
+                    .split(". ")[1];
+
+                  let conceptoCodigo = "";
+                  let descripcion = "";
+
+                  // Si solo viene el codigo del concepto
+                  if (!desc) {
+                    conceptoCodigo = arrayTextLine[i].arrayText[0]?.text;
+                    descripcion = arrayTextLine[i].arrayText[1]?.text;
+                  } else {
+                    conceptoCodigo = arrayTextLine[
+                      i
+                    ].arrayText[0]?.text.replace(/\D/g, "");
+                    descripcion = arrayTextLine[i].arrayText[0]?.text
+                      .replace(/[\d]+/g, "")
+                      .split(". ")[1]
+                      .trim();
+                  }
+
+                  elementDevengos = {
+                    conceptoCodigo,
+                    descripcion,
+                    unidades:
+                      arrayTextLine[i].arrayText[1]?.left >= leftCantidad
+                        ? arrayTextLine[i].arrayText[1]?.text
+                        : comprobarDevengoEnCantidad,
+                    precio: "N/A",
+                    devengo: comprobarDevengoEnDescripcion,
+                    // arrayTextLine[i].arrayText[3]?.left < leftCentroCosto
+                    //   ? comprobarDevengoConDobleSigno
+                    //   : comprobarCentroEnDevengo,
+                  };
+                  contConfidence += x.confidence;
+                  totalDatos++;
+                  client.devengos.confidence = (
+                    contConfidence / totalDatos
+                  ).toFixed(2);
+                }
+
+                // Captura de devengos
+                if (x.left >= leftDiscounts) {
+                  elementDescuentos = {
+                    centroCosto: "",
+                    conceptoDeduccion: "",
+                    descripcionDeduccion: "",
+                    deduccion: "",
+                  };
+                  contConfidence += x.confidence;
+                  totalDatos++;
+                  client.devengos.confidence = (
+                    contConfidence / totalDatos
+                  ).toFixed(2);
+                }
+              });
+              client.descuentos.list.push(elementDescuentos);
+              client.devengos.list.push(elementDevengos);
+            }
+
+            // jsonClient
             arrayTextLine[i].arrayText.map((x) => {
               // List Devengos
               if (x.left >= leftEarns && x.left < leftDiscounts) {
@@ -451,15 +564,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 //   deve: x[3]?.text,
                 // };
                 // console.log(x);
-                /**
-                 * Variable condicional, si el valor de devengos viene en la
-                 * posicion de la columna cantidad
-                 */
-                // let comprobarDevengoEnCantidad = arrayTextLine[
-                //   i
-                // ].arrayText[2]?.text.includes("$ ")
-                //   ? 0
-                //   : arrayTextLine[i].arrayText[2]?.text;
                 // // Columna Concepto
                 // if (arrayTextLine[i].arrayText[0]?.left >= x.left) {
                 //   concepDevengo = x.text;
@@ -487,7 +591,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 // };
                 // contConfidence += x.confidence;
                 // totalDatos++;
-                // jsonClient.client.devengos.confidence = (
+                // client.devengos.confidence = (
                 //   contConfidence / totalDatos
                 // ).toFixed(2);
               }
@@ -496,26 +600,29 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               if (x.left >= leftDiscounts) {
                 contConfidence += x.confidence;
                 totalDatos++;
-                jsonClient.client.descuentos.confidence = (
+                client.descuentos.confidence = (
                   contConfidence / totalDatos
                 ).toFixed(2);
               }
             });
 
-            jsonClient.client.devengos.list.push(elementDevengos);
-            //TODO: // jsonClient.client.descuentos.list.push(elementDescuentos);
+            // client.devengos.list.push(elementDevengos);
+            //TODO: // client.descuentos.list.push(elementDescuentos);
           }
 
           // MUESTREO TEMPORAL
-          console.log(jsonClient.client.devengos);
-          // console.log(jsonClient.client.descuentos);
+          console.log(client.devengos);
+          // console.log(client.banco);
+          // console.log(client.descuentos);
 
-          // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS AL ARRAY
-          resultArray.push(jsonClient);
-          resultArray.push(jsonCompany);
+          // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
+          resultObject = {
+            client,
+            company,
+          };
 
           // arrayTextLine.map((x) => console.log(x));
-          jsonToRead ? resolve(resultArray) : resolve(false);
+          jsonToRead ? resolve(resultObject) : resolve(false);
         })();
       }
     } catch (error) {
