@@ -38,7 +38,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
         nomina: "",
         pension: "NO REGISTRA",
         convenio: "",
-        // fechaIngreso: "",
+        fechaIngreso: "NO REGISTRA",
         devengos: {
           list: [],
           subtotal: null,
@@ -46,7 +46,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
         },
         confidence: null,
         sueldoNeto: null,
-        descuentos: {
+        deducciones: {
           list: [],
           subtotal: null,
           confidence: null,
@@ -108,13 +108,24 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 if (
                   block.Text.toUpperCase().startsWith(
                     "CONCEP DESCRIPCION CONCEPTO"
+                  ) ||
+                  block.Text.toUpperCase().startsWith(
+                    "CONCEP DESCRIPCIÓN CONCEPTO"
+                  ) ||
+                  block.Text.toUpperCase().startsWith(
+                    "CONCEP DESCRIPCIONCONCEPTO"
                   )
                 ) {
                   leftEarns = block.Geometry.BoundingBox.Left.toFixed(2);
                 }
 
                 // Captura de valores left descuentos
-                if (block.Text.toUpperCase().startsWith("CENTRO COSTO")) {
+                if (
+                  block.Text.toUpperCase().startsWith("CENTRO COSTO") ||
+                  block.Text.toUpperCase().startsWith(
+                    "CENTROCOSTO/CONCEP DESCRIPCION CONCEPTO"
+                  )
+                ) {
                   leftDiscounts = block.Geometry.BoundingBox.Left.toFixed(2);
                 }
 
@@ -124,25 +135,28 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             // ################################################## fin for
           }
 
+          let textFindInit = arrayTextLine.map((e) => {
+            return e.arrayText[0].text;
+          });
+
           /**
            * Posición inicial de tabla de dev/ded
            */
-          let init =
-            arrayTextLine
-              .map((e) => {
-                return e.arrayText[0].text;
-              })
-              .indexOf("CONCEP DESCRIPCIÓN CONCEPTO") === -1
-              ? arrayTextLine
-                  .map((e) => {
-                    return e.arrayText[0].text;
-                  })
-                  .indexOf("CONCEP DESCRIPCION CONCEPTO")
-              : arrayTextLine
-                  .map((e) => {
-                    return e.arrayText[0].text;
-                  })
-                  .indexOf("CONCEP DESCRIPCIÓN CONCEPTO");
+          let init;
+
+          if (textFindInit.indexOf("CONCEP DESCRIPCIONCONCEPTO") !== -1) {
+            init = textFindInit.indexOf("CONCEP DESCRIPCIONCONCEPTO");
+          } else if (
+            textFindInit.indexOf("CONCEP DESCRIPCIÓN CONCEPTO") !== -1
+          ) {
+            init = textFindInit.indexOf("CONCEP DESCRIPCIÓN CONCEPTO");
+          } else if (
+            textFindInit.indexOf("CONCEP DESCRIPCION CONCEPTO") !== -1
+          ) {
+            init = textFindInit.indexOf("CONCEP DESCRIPCION CONCEPTO");
+          }
+
+          // console.log(init);
 
           /**
            * Posición final de tabla de dev/ded y campo
@@ -172,16 +186,40 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             // EL BLOQUE TIENE NETO
             client.devengos.subtotal =
               arrayTextLine[bloque].arrayText[0]?.text.split("$ ")[1];
-            client.descuentos.subtotal =
+            client.deducciones.subtotal =
               arrayTextLine[bloque].arrayText[1]?.text.split("$ ")[1];
           } else {
-            // EL BLOQUE TIENE LA REFERENCIA DE SUBTOTALES
-            client.devengos.subtotal = arrayTextLine[end].arrayText[0]?.text
-              .split("$")[1]
-              .trim();
-            client.descuentos.subtotal = arrayTextLine[end].arrayText[1]?.text
-              .split("$")[1]
-              .trim();
+            if (arrayTextLine[end - 2].arrayText[0]?.text.includes("$")) {
+              client.devengos.subtotal = arrayTextLine[
+                end - 2
+              ].arrayText[0]?.text
+                .split("$")[1]
+                .trim()
+                .split(" ")[0];
+            }
+            if (arrayTextLine[end].arrayText[1] === undefined) {
+              client.deducciones.subtotal = arrayTextLine[
+                end
+              ].arrayText[0]?.text
+                .split("$")[1]
+                .trim();
+            } else {
+              // EL BLOQUE TIENE LA REFERENCIA DE SUBTOTALES
+
+              // Si traen signo guardar sin signo
+              client.devengos.subtotal = arrayTextLine[
+                end
+              ].arrayText[0]?.text.includes("$")
+                ? arrayTextLine[end].arrayText[0]?.text.split("$")[1].trim()
+                : arrayTextLine[end].arrayText[0]?.text;
+
+              // Same thing
+              client.deducciones.subtotal = arrayTextLine[
+                end
+              ].arrayText[1]?.text.includes("$")
+                ? arrayTextLine[end].arrayText[1]?.text.split("$")[1].trim()
+                : arrayTextLine[end].arrayText[1]?.text;
+            }
           }
 
           /**
@@ -320,7 +358,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   // se guarda el nit del bloque i + 6 (Caso especial)
                   // Y si viene el sueldo base junto con el
                   // Sino esta en i+6, se guarda el caso especial i+4
-                  // let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
+                  let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
                   let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
 
                   if (nit6bloque.includes("(")) {
@@ -361,7 +399,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           /**
            * Objeto que guarda los elementos que tengan descuentos
            */
-          let elementDescuentos = {};
+          let elementDeducciones = {};
 
           // Recorriendo la tabla
 
@@ -388,232 +426,218 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * arrayTextLine[i].arrayText[7] -> Columna Descuento
            */
 
-          console.log(init);
-          console.log(end);
-          // console.log(arrayTextLine[end]);
-
           /**
            * Referencias left de las columnas de la tabla
            */
 
-          let leftCentroCosto;
-          let leftCantidad;
-          arrayTextLine[init].arrayText.map((x) => {
-            if (x.text.includes("CENTRO")) {
-              leftCentroCosto = x?.left;
-            }
-            if (x.text.includes("CANTIDAD")) {
-              leftCantidad = x?.left;
-            }
-          });
+          let leftCentroCosto =
+            arrayTextLine[init + 1].arrayText[3]?.left >= leftDiscounts
+              ? arrayTextLine[init + 1].arrayText[3]?.left
+              : arrayTextLine[init + 1].arrayText[4]?.left;
+
+          let leftConceptoDeduccion =
+            arrayTextLine[init + 1].arrayText[5]?.left;
 
           // SI NO HAY DATOS EN LA TABLA
           if (init + 1 === end) {
             client.devengos.confidence = "0";
-            client.descuentos.confidence = "0";
+            client.deducciones.confidence = "0";
           }
 
-          //TODO: LECTURA DE DEVENGOS Y DEDUCCIONES
-          for (let i = init + 1; i < end; i++) {
-            /**
-             * Variables combinadas
-             */
+          /**
+           * Variable que guarda la posicion de la columna
+           * donde se encuentra el centro de costo, usada como referencia
+           * para capturar datos de la tabla de deducciones
+           */
+          let indiceColumnaCentroCosto;
 
-            // Bloques con todos los datos
-            if (arrayTextLine[i].arrayText.length >= 3) {
+          for (let i = init + 1; i < end; i++) {
+            if (arrayTextLine[i].arrayText[0]?.left < leftDiscounts) {
+              let conceptoCodigo;
+              let concepto;
+              let unidades;
+              let devengo;
               arrayTextLine[i].arrayText.map((x) => {
                 let desc;
                 // Captura de devengos
                 if (x.left >= leftEarns && x.left < leftDiscounts) {
-                  /**
-                   * Variable condicional, si el valor de Centro costo
-                   * está situado en la columna devengo
-                   */
-                  let comprobarCentroEnDevengo = arrayTextLine[
-                    i
-                  ].arrayText[2]?.text.includes("$")
-                    ? arrayTextLine[i].arrayText[2]?.text.split("$")[1].trim()
-                    : "0";
+                  if (arrayTextLine[i].arrayText[0]?.left < leftCentroCosto) {
+                    // Caso especial
+                    // Si recibe devengo en la columna debida
+                    if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
+                      // Valida que no venga con doble signo $
+                      if (
+                        arrayTextLine[i].arrayText[3]?.text.split("$")[1] ===
+                        " "
+                      ) {
+                        devengo = arrayTextLine[i].arrayText[3]?.text
+                          .split("$")[2]
+                          .trim();
+                      } else {
+                        devengo = arrayTextLine[i].arrayText[3]?.text
+                          .split("$")[1]
+                          .trim();
+                      }
+                    }
+                    // Si recibe devengo en la columna 2
+                    else if (
+                      arrayTextLine[i].arrayText[2]?.text.includes("$")
+                    ) {
+                      // Valida que no venga con doble signo $
+                      if (
+                        arrayTextLine[i].arrayText[2]?.text.split("$")[1] ===
+                        " "
+                      ) {
+                        devengo = arrayTextLine[i].arrayText[2]?.text
+                          .split("$")[2]
+                          .trim();
+                      } else {
+                        devengo = arrayTextLine[i].arrayText[2]?.text
+                          .split("$")[1]
+                          .trim();
+                      }
+                    }
+                    // Si recibe devengo en la columna 1
+                    else if (
+                      arrayTextLine[i].arrayText[1]?.text.includes("$")
+                    ) {
+                      devengo = arrayTextLine[i].arrayText[1]?.text
+                        .split("$")[1]
+                        .trim();
+                    } else {
+                      devengo = "0";
+                    }
 
-                  /**
-                   * Variable condicional, si hay valores de deduccion en los datos de
-                   * devengos
-                   */
-                  let comprobarCamposDeDeduccion =
-                    arrayTextLine[i].arrayText[2]?.left >= leftDiscounts
-                      ? "0"
-                      : arrayTextLine[i].arrayText[2]?.text;
-                  // : comprobarDevengoEnCantidad;
-
-                  /**
-                   * Variable condicional, si el valor del devengo viene
-                   * en la columna cantidad
-                   */
-                  let comprobarDevengoEnCantidad = arrayTextLine[
-                    i
-                  ].arrayText[2]?.text.includes("$")
-                    ? "0"
-                    : comprobarCamposDeDeduccion;
-                  // : arrayTextLine[i].arrayText[2]?.text;
-
-                  // Caso especial
-                  let comprobarDevengoConDobleSigno;
-                  if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
-                    comprobarDevengoConDobleSigno =
-                      arrayTextLine[i].arrayText[3]?.text.split("$")[1] === " "
-                        ? arrayTextLine[i].arrayText[3]?.text.split("$")[2].trim()
-                        : arrayTextLine[i].arrayText[3]?.text.split("$")[1].trim();
-                  }
-
-                  /**
-                   * Variable condicional, si el valor del devengo se encuentra
-                   * en otras columnas
-                   */
-                  let verificarPosicionDevengo =
-                    arrayTextLine[i].arrayText[3]?.left < leftCentroCosto
-                      ? comprobarDevengoConDobleSigno
-                      : comprobarCentroEnDevengo;
-
-                  /**
-                   * Variable condicional, si el valor del devengo viene
-                   * en la columna descripcion
-                   */
-                  let comprobarDevengoEnDescripcion = arrayTextLine[
-                    i
-                  ].arrayText[1]?.text.includes("$")
-                    ? "0"
-                    : verificarPosicionDevengo;
-
-                  /**
-                   * Variable que pregunta si el codigo está junto a la descripcion en
-                   * el bloque
-                   */
-                  desc = arrayTextLine[i].arrayText[0]?.text
-                    .replace(/[\d]+/g, "")
-                    .split(". ")[1];
-
-                  let conceptoCodigo = "";
-                  let descripcion = "";
-
-                  // Si solo viene el codigo del concepto
-                  if (!desc) {
-                    conceptoCodigo = arrayTextLine[i].arrayText[0]?.text;
-                    descripcion = arrayTextLine[i].arrayText[1]?.text;
-                  } else {
-                    conceptoCodigo = arrayTextLine[
-                      i
-                    ].arrayText[0]?.text.replace(/\D/g, "");
-                    descripcion = arrayTextLine[i].arrayText[0]?.text
+                    desc = arrayTextLine[i].arrayText[0]?.text
                       .replace(/[\d]+/g, "")
-                      .split(". ")[1]
-                      .trim();
+                      .split(". ")[1];
+
+                    // Si solo viene el codigo del concepto
+                    if (!desc) {
+                      conceptoCodigo = arrayTextLine[i].arrayText[0]?.text;
+                      concepto = arrayTextLine[i].arrayText[1]?.text;
+                      unidades =
+                        arrayTextLine[i].arrayText[2]?.left >= leftDiscounts ||
+                        arrayTextLine[i].arrayText[2]?.text.includes("$")
+                          ? "0"
+                          : arrayTextLine[i].arrayText[2]?.text;
+                    } else {
+                      conceptoCodigo = arrayTextLine[
+                        i
+                      ].arrayText[0]?.text.replace(/\D/g, "");
+                      concepto = arrayTextLine[i].arrayText[0]?.text
+                        .replace(/[\d]+/g, "")
+                        .split(". ")[1]
+                        .trim();
+                      unidades =
+                        arrayTextLine[i].arrayText[1]?.left >= leftDiscounts ||
+                        arrayTextLine[i].arrayText[1]?.text.includes("$")
+                          ? "0"
+                          : arrayTextLine[i].arrayText[1]?.text;
+                    }
+
+                    elementDevengos = {
+                      conceptoCodigo,
+                      concepto,
+                      unidades,
+                      precio: "N/A",
+                      devengo,
+                    };
+
+                    contConfidence += x.confidence;
+                    totalDatos++;
+                    client.devengos.confidence = (
+                      contConfidence / totalDatos
+                    ).toFixed(2);
                   }
-
-                  elementDevengos = {
-                    conceptoCodigo,
-                    descripcion,
-                    unidades:
-                      arrayTextLine[i].arrayText[1]?.left >= leftCantidad
-                        ? arrayTextLine[i].arrayText[1]?.text
-                        : comprobarDevengoEnCantidad,
-                    precio: "N/A",
-                    devengo: comprobarDevengoEnDescripcion,
-                    // arrayTextLine[i].arrayText[3]?.left < leftCentroCosto
-                    //   ? comprobarDevengoConDobleSigno
-                    //   : comprobarCentroEnDevengo,
-                  };
-                  contConfidence += x.confidence;
-                  totalDatos++;
-                  client.devengos.confidence = (
-                    contConfidence / totalDatos
-                  ).toFixed(2);
                 }
-
-                // Captura de devengos
-                if (x.left >= leftDiscounts) {
-                  elementDescuentos = {
-                    centroCosto: "",
-                    conceptoDeduccion: "",
-                    descripcionDeduccion: "",
-                    deduccion: "",
-                  };
+              });
+              if (concepto) {
+                client.devengos.list.push(elementDevengos);
+              }
+            }
+            if (!leftConceptoDeduccion) {
+              client.deducciones.confidence = "0";
+            } else {
+              // Captura de deducciones
+              let concepto;
+              let conceptoCodigo;
+              let deduccion;
+              arrayTextLine[i].arrayText.map((x) => {
+                //Margen de error
+                if (
+                  (x.left - 0.01).toFixed(2) === leftCentroCosto ||
+                  x.left === leftCentroCosto ||
+                  (parseFloat(x.left) + 0.01).toFixed(2).toString() ===
+                    leftCentroCosto
+                ) {
+                  indiceColumnaCentroCosto = arrayTextLine[
+                    i
+                  ].arrayText.findIndex((center) => {
+                    return x === center;
+                  });
+                }
+                if (x.left > leftDiscounts) {
                   contConfidence += x.confidence;
                   totalDatos++;
-                  client.devengos.confidence = (
+                  client.deducciones.confidence = (
                     contConfidence / totalDatos
                   ).toFixed(2);
                 }
               });
-              client.descuentos.list.push(elementDescuentos);
-              client.devengos.list.push(elementDevengos);
+
+              let initDeducciones = indiceColumnaCentroCosto + 1;
+
+              if (arrayTextLine[i].arrayText[initDeducciones]) {
+                if (
+                  arrayTextLine[i].arrayText[
+                    initDeducciones + 1
+                  ]?.text.includes("$")
+                ) {
+                  deduccion = arrayTextLine[i].arrayText[
+                    initDeducciones + 1
+                  ]?.text
+                    .split("$")[1]
+                    .trim();
+                  concepto = arrayTextLine[i].arrayText[initDeducciones]?.text
+                    .replace(/[\d]/g, "")
+                    .split(".")[1]
+                    .trim();
+                  conceptoCodigo = arrayTextLine[i].arrayText[
+                    initDeducciones
+                  ]?.text.replace(/\D/g, "");
+                } else {
+                  concepto =
+                    arrayTextLine[i].arrayText[initDeducciones + 1]?.text;
+                  conceptoCodigo =
+                    arrayTextLine[i].arrayText[initDeducciones]?.text;
+                  deduccion = arrayTextLine[i].arrayText[
+                    initDeducciones + 2
+                  ]?.text
+                    .split("$")[1]
+                    .trim();
+                }
+
+                if (concepto) {
+                  elementDeducciones = {
+                    conceptoCodigo,
+                    concepto,
+                    unidades: "N/A",
+                    precio: "N/A",
+                    deduccion,
+                  };
+
+                  client.deducciones.list.push(elementDeducciones);
+                }
+              }
             }
-
-            // jsonClient
-            arrayTextLine[i].arrayText.map((x) => {
-              // List Devengos
-              if (x.left >= leftEarns && x.left < leftDiscounts) {
-                // console.log(x);
-                // let { text } = x;
-                // console.log(text);
-                // elementDevengos={text}
-                // console.log(arrayTextLine[i].arrayText[0]);
-                // elementDevengos = {
-                //   concep: x[0]?.text,
-                //   desc: x[1]?.text,
-                //   cant: x[2]?.text,
-                //   deve: x[3]?.text,
-                // };
-                // console.log(x);
-                // // Columna Concepto
-                // if (arrayTextLine[i].arrayText[0]?.left >= x.left) {
-                //   concepDevengo = x.text;
-                // }
-                // // Columna Descripcion concepto
-                // if (arrayTextLine[i].arrayText[1]?.left >= x.left) {
-                //   descripcionDevengo = x.text;
-                // }
-                // // Columna Cantidad
-                // if (arrayTextLine[i].arrayText[2]?.left === x.left) {
-                //   cantidadDevengo = x.text;
-                // }
-                // // Columna devengos
-                // if (arrayTextLine[i].arrayText[2]?.left <= x.left) {
-                //   devengo = x.text;
-                // } else {
-                //   devengo = 0;
-                // }
-                // elementDevengos = {
-                //   concepDevengo,
-                //   descripcionDevengo,
-                //   cantidadDevengo:
-                //     cantidadDevengo === "" ? 0 : comprobarDevengoEnCantidad,
-                //   devengo,
-                // };
-                // contConfidence += x.confidence;
-                // totalDatos++;
-                // client.devengos.confidence = (
-                //   contConfidence / totalDatos
-                // ).toFixed(2);
-              }
-
-              // List deducciones
-              if (x.left >= leftDiscounts) {
-                contConfidence += x.confidence;
-                totalDatos++;
-                client.descuentos.confidence = (
-                  contConfidence / totalDatos
-                ).toFixed(2);
-              }
-            });
-
-            // client.devengos.list.push(elementDevengos);
-            //TODO: // client.descuentos.list.push(elementDescuentos);
           }
 
           // MUESTREO TEMPORAL
+          console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
           console.log(client.devengos);
-          // console.log(client.banco);
-          // console.log(client.descuentos);
+          console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
+          console.log(client.deducciones);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
           resultObject = {
