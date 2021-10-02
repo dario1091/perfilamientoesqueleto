@@ -72,6 +72,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               if (block.BlockType === "LINE") {
                 let strTop =
                   block.Geometry.BoundingBox.Top.toString().substring(0, 6);
+                // console.log(strTop);
 
                 // console.log(block);
 
@@ -85,7 +86,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 }
                 if (pos !== -1) {
                   arrayTextLine[pos].arrayText.push({
-                    // top: strTop,
+                    // top: ":::" + strTop,
                     text: block.Text,
                     left: block.Geometry.BoundingBox.Left.toFixed(2),
                     confidence: block.Confidence,
@@ -95,7 +96,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   newElem.top = parseFloat(strTop);
                   newElem.arrayText = [
                     {
-                      // top: ":::" + strTop,
+                      top: strTop,
                       text: block.Text,
                       left: block.Geometry.BoundingBox.Left.toFixed(2),
                       confidence: block.Confidence,
@@ -121,10 +122,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 // Captura de valores left descuentos
                 if (
-                  block.Text.toUpperCase().startsWith("CENTRO COSTO") ||
-                  block.Text.toUpperCase().startsWith(
-                    "CENTROCOSTO/CONCEP DESCRIPCION CONCEPTO"
-                  )
+                  (block.Text.toUpperCase().includes("CENTRO COSTO") ||
+                    block.Text.toUpperCase().includes("CENTROCOSTO") ||
+                    block.Text.toUpperCase().startsWith("CENTRO") ||
+                    block.Text.toUpperCase().includes("CENTROCOSTO/CONCEP")) &&
+                  !block.Text.toUpperCase().includes("UTILIDAD")
                 ) {
                   leftDiscounts = block.Geometry.BoundingBox.Left.toFixed(2);
                 }
@@ -154,28 +156,38 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             textFindInit.indexOf("CONCEP DESCRIPCION CONCEPTO") !== -1
           ) {
             init = textFindInit.indexOf("CONCEP DESCRIPCION CONCEPTO");
+          } else if (textFindInit.indexOf("DESCRIPCION CONCEPTO") !== -1) {
+            init = textFindInit.indexOf("DESCRIPCION CONCEPTO");
           }
 
-          // console.log(init);
-
-          /**
-           * Posición final de tabla de dev/ded y campo
-           * de subtotales devengos y deducciones
-           */
+          // referencia para capturar el fin de la tabla
           let calcEnd = arrayTextLine
             .map((e) => {
               return e.arrayText[0].text;
             })
             .indexOf("Firma:");
 
-          let end = arrayTextLine[calcEnd - 3].arrayText[0]?.text.includes(
-            "NETO:"
-          )
-            ? calcEnd - 4
-            : calcEnd - 3;
+          /**
+           * Posición final de tabla de dev/ded y campo
+           * de subtotales devengos y deducciones
+           */
+          let end;
+          // El neto se encuentra 3 bloques antes
+          if (arrayTextLine[calcEnd - 3].arrayText[0]?.text.includes("NETO:")) {
+            end = calcEnd - 4;
+          }
+          // El neto se encuentra 4 bloques antes
+          else if (
+            arrayTextLine[calcEnd - 4].arrayText[0]?.text.includes("NETO:")
+          ) {
+            end = calcEnd - 5;
+          }
+          // Bloques distribuidos correctamente
+          else {
+            end = calcEnd - 3;
+          }
 
           // GUARDANDO REFERENCIAS DE SUBTOTALES Y LEFTS DE DEVENGOS Y DEDUCCIONES
-
           /**
            * Referencia del bloque donde se encuentran los subtotales
            */
@@ -247,7 +259,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
             arrayTextLine[i].arrayText.map((x) => {
               // GUARDANDO CONVENIO ###################### ----------------------------------
-              if (x.text.startsWith("CENTRO DE UTILIDAD")) {
+              if (
+                x.text.startsWith("CENTRO DE UTILIDAD") &&
+                parseFloat(x.top) < 0.7
+              ) {
                 let codigoDividido = "";
 
                 // Si el bloque de abajo empieza con el codigo 0 viene el nombre del convenio
@@ -261,6 +276,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     arrayTextLine[block].arrayText[columna]?.text.split(" ");
                 } else {
                   // El bloque de abajo viene con otro texto o marca de agua
+
                   codigoDividido =
                     arrayTextLine[block + 1].arrayText[columna]?.text.split(
                       " "
@@ -275,18 +291,48 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // GUARDANDO NOMBRE, CEDULA, SALARIO BASE (DEPENDIENDO DE)
               // LA LINEA ###################### ----------------------------------
-              if (x.text.includes("NOMBRE")) {
+              if (x.text.includes("NOMBRE") && parseFloat(x.top) < 0.7) {
                 // Guardando Salario base dependiendo de la linea
-                let textOtroBloque = arrayTextLine[i + 4].arrayText[0]?.text;
-                if (textOtroBloque.includes("$")) {
-                  // Sueldo en la misma linea
-                  let obtenerSueldo = textOtroBloque.split("$ ")[1];
-                  let sueldo = obtenerSueldo.split(" ")[0];
-                  client.basico = sueldo;
-                } else {
-                  // Guardando sueldo base
-                  client.basico = x.text.split("$ ")[1];
+                let text2Bloque = arrayTextLine[i + 2].arrayText[0]?.text;
+                let text4Bloque = arrayTextLine[i + 4].arrayText[0]?.text;
+                let text6Bloque = arrayTextLine[i + 6].arrayText[0]?.text;
+
+                // console.log(x.text);
+                // console.log(text2Bloque);
+                // console.log(text4Bloque);
+                // console.log(text6Bloque);
+
+                let sueldo;
+                // Si el sueldo viene en el bloque 4
+                if (text4Bloque.includes("-")) {
+                  if (text4Bloque.includes("$")) {
+                    sueldo = text4Bloque.split("$")[1].trim();
+                  } else {
+                    sueldo = text4Bloque.split("-")[1].trim();
+                  }
                 }
+                // Si el sueldo viene en el bloque 6
+                else if (text6Bloque.includes("-")) {
+                  if (text6Bloque.includes("$")) {
+                    sueldo = text6Bloque.split("$")[1].trim();
+                  } else {
+                    sueldo = text6Bloque.split("-")[1].trim();
+                  }
+                }
+                // Si el sueldo viene en la linea actual
+                else if (x.text.includes("-")) {
+                  //Caso especial viene hasta el guion - Viene en el bloque 2
+                  if (x.text.split("- ")[1] === undefined) {
+                    sueldo = text2Bloque.split("$")[1].trim();
+                  } else if (x.text.includes("$")) {
+                    sueldo = x.text.split("$")[1].trim();
+                  }
+                } else if (x.text.includes("$")) {
+                  // Caso especial
+                  sueldo = x.text.split("$")[1].trim();
+                }
+
+                client.basico = sueldo;
 
                 // Guardando numero de cedula
                 let textInicioDocumento = x.text.split("(")[1];
@@ -301,12 +347,23 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // GUARDANDO SUELDO NETO ###################### ----------------------------------
               if (x.text.includes("NETO: ")) {
-                client.sueldoNeto = x.text.split("$ ")[1];
+                if (x.text.includes("$")) {
+                  client.sueldoNeto = x.text.split("$")[1].trim();
+                } else {
+                  if (x.text.includes(":")) {
+                    client.sueldoNeto = x.text.split(":")[1].trim();
+                  } else {
+                    client.sueldoNeto = x.text.split("NETO")[1].trim();
+                  }
+                }
               }
 
               // GUARDANDO NUMERO DE CUENTA BANCARIA Y NOMBRE
               // ###################### ----------------------------------
-              if (x.text.toUpperCase().startsWith("MODO PAGO:")) {
+              if (
+                x.text.toUpperCase().startsWith("MODO PAGO:") &&
+                parseFloat(x.top) < 0.7
+              ) {
                 if (x.text.includes("<Ninguno>")) {
                   client.banco.account = "NO REGISTRA";
                   client.banco.name = "NO REGISTRA";
@@ -316,14 +373,21 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   ].text.replace(/\D/g, "");
 
                   let separarCad = x.text.split(" ");
-                  let ubicacionBanco = separarCad.indexOf("BANCO");
+                  let ubicacionBanco;
+                  if (separarCad.indexOf("BBVA") !== -1) {
+                    ubicacionBanco = separarCad.indexOf("BBVA");
+                  } else if (separarCad.indexOf("BANCO") !== -1) {
+                    ubicacionBanco = separarCad.indexOf("BANCO");
+                  } else {
+                    ubicacionBanco = separarCad.indexOf("BANCOLOMBIA");
+                  }
                   let name = separarCad.slice(ubicacionBanco);
                   client.banco.name = name.join(" ");
                 }
               }
 
               // GUARDANDO FECHA DE NOMINA ###################### -------------------------------
-              if (x.text.includes("PERIODO:")) {
+              if (x.text.includes("PERIODO:") && parseFloat(x.top) < 0.7) {
                 let lengthCadena = x.text.split(" ").length;
                 let capturaFecha = "";
                 // Codigo periodo pegado a la primera fecha
@@ -341,7 +405,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
 
               // GUARDANDO NOMBRE DE EMPRESA Y NIT ###################### ------------------
-              if (x.text.toUpperCase().includes("EMPRESA:")) {
+              if (
+                x.text.toUpperCase().includes("EMPRESA:") &&
+                parseFloat(x.top) < 0.7
+              ) {
                 // Datos del nit
                 let dividirNit = "";
                 let nit = "";
@@ -361,11 +428,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
                   let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
 
-                  if (nit6bloque.includes("(")) {
-                    dividirNit = nit6bloque.split("(")[1];
-                  } else {
+                  if (nit4bloque.includes("(")) {
                     dividirNit = nit4bloque.split("(")[1];
+                  } else {
+                    dividirNit = nit6bloque.split("(")[1];
                   }
+
                   nit = dividirNit.split(")")[0];
                   company.nit = nit;
                 } else {
@@ -430,10 +498,15 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * Referencias left de las columnas de la tabla
            */
 
+          let validarDevengoCorrido =
+            arrayTextLine[init + 1].arrayText[2]?.left >= leftDiscounts
+              ? arrayTextLine[init + 1].arrayText[2]?.left
+              : arrayTextLine[init + 1].arrayText[4]?.left;
+
           let leftCentroCosto =
             arrayTextLine[init + 1].arrayText[3]?.left >= leftDiscounts
               ? arrayTextLine[init + 1].arrayText[3]?.left
-              : arrayTextLine[init + 1].arrayText[4]?.left;
+              : validarDevengoCorrido;
 
           let leftConceptoDeduccion =
             arrayTextLine[init + 1].arrayText[5]?.left;
@@ -451,6 +524,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let indiceColumnaCentroCosto;
 
+          // RECORRIDO DE TABLA
           for (let i = init + 1; i < end; i++) {
             if (arrayTextLine[i].arrayText[0]?.left < leftDiscounts) {
               let conceptoCodigo;
@@ -460,6 +534,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               arrayTextLine[i].arrayText.map((x) => {
                 let desc;
                 // Captura de devengos
+
                 if (x.left >= leftEarns && x.left < leftDiscounts) {
                   if (arrayTextLine[i].arrayText[0]?.left < leftCentroCosto) {
                     // Caso especial
