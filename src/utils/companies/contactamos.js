@@ -86,7 +86,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 }
                 if (pos !== -1) {
                   arrayTextLine[pos].arrayText.push({
-                    // top: ":::" + strTop,
+                    top: ":::" + strTop,
                     text: block.Text,
                     left: block.Geometry.BoundingBox.Left.toFixed(2),
                     confidence: block.Confidence,
@@ -187,6 +187,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             end = calcEnd - 3;
           }
 
+          /**
+           * Coordenadas top del documento
+           */
+          let top;
+
           // GUARDANDO REFERENCIAS DE SUBTOTALES Y LEFTS DE DEVENGOS Y DEDUCCIONES
           /**
            * Referencia del bloque donde se encuentran los subtotales
@@ -258,10 +263,15 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             let columna = 0;
 
             arrayTextLine[i].arrayText.map((x) => {
+              if (x.top.includes(":::")) {
+                top = x.top.split(":::")[1];
+              } else {
+                top = x.top;
+              }
               // GUARDANDO CONVENIO ###################### ----------------------------------
               if (
                 x.text.startsWith("CENTRO DE UTILIDAD") &&
-                parseFloat(x.top) < 0.7
+                parseFloat(top) < 0.7
               ) {
                 let codigoDividido = "";
 
@@ -291,17 +301,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // GUARDANDO NOMBRE, CEDULA, SALARIO BASE (DEPENDIENDO DE)
               // LA LINEA ###################### ----------------------------------
-              if (x.text.includes("NOMBRE") && parseFloat(x.top) < 0.7) {
+              if (x.text.includes("NOMBRE") && parseFloat(top) < 0.7) {
                 // Guardando Salario base dependiendo de la linea
                 let text2Bloque = arrayTextLine[i + 2].arrayText[0]?.text;
                 let text4Bloque = arrayTextLine[i + 4].arrayText[0]?.text;
                 let text6Bloque = arrayTextLine[i + 6].arrayText[0]?.text;
 
-                // console.log(x.text);
-                // console.log(text2Bloque);
-                // console.log(text4Bloque);
-                // console.log(text6Bloque);
+                // Guardando numero de cedula
+                let textInicioDocumento = x.text.split("(")[1];
+                let numDocumento = textInicioDocumento.split(")")[0];
 
+                // Guardando sueldo
                 let sueldo;
                 // Si el sueldo viene en el bloque 4
                 if (text4Bloque.includes("-")) {
@@ -323,7 +333,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 else if (x.text.includes("-")) {
                   //Caso especial viene hasta el guion - Viene en el bloque 2
                   if (x.text.split("- ")[1] === undefined) {
-                    sueldo = text2Bloque.split("$")[1].trim();
+                    let omitirInfo = text2Bloque.split("$")[1];
+                    sueldo = omitirInfo.split(" ")[1];
                   } else if (x.text.includes("$")) {
                     sueldo = x.text.split("$")[1].trim();
                   }
@@ -334,9 +345,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 client.basico = sueldo;
 
-                // Guardando numero de cedula
-                let textInicioDocumento = x.text.split("(")[1];
-                let numDocumento = textInicioDocumento.split(")")[0];
                 client.documentNumber = numDocumento;
 
                 // Guardando nombre del cliente
@@ -362,7 +370,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // ###################### ----------------------------------
               if (
                 x.text.toUpperCase().startsWith("MODO PAGO:") &&
-                parseFloat(x.top) < 0.7
+                parseFloat(top) < 0.7
               ) {
                 if (x.text.includes("<Ninguno>")) {
                   client.banco.account = "NO REGISTRA";
@@ -387,7 +395,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
 
               // GUARDANDO FECHA DE NOMINA ###################### -------------------------------
-              if (x.text.includes("PERIODO:") && parseFloat(x.top) < 0.7) {
+              if (x.text.includes("PERIODO:") && parseFloat(top) < 0.7) {
                 let lengthCadena = x.text.split(" ").length;
                 let capturaFecha = "";
                 // Codigo periodo pegado a la primera fecha
@@ -406,8 +414,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // GUARDANDO NOMBRE DE EMPRESA Y NIT ###################### ------------------
               if (
-                x.text.toUpperCase().includes("EMPRESA:") &&
-                parseFloat(x.top) < 0.7
+                x.text.toUpperCase().includes("EMPRESA") &&
+                parseFloat(top) < 0.7
               ) {
                 // Datos del nit
                 let dividirNit = "";
@@ -417,23 +425,25 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let dividirEmpresa = x.text.split(": ")[1];
                 let name = dividirEmpresa.split("(")[0];
 
+                let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
+                let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
                 // Si el nombre de la empresa no captura numeros
                 if (isNaN(parseInt(x.text.replace(/\D/g, "")))) {
                   // SOLO VIENE TEXTO
+
                   company.name = name;
 
                   // se guarda el nit del bloque i + 6 (Caso especial)
                   // Y si viene el sueldo base junto con el
                   // Sino esta en i+6, se guarda el caso especial i+4
-                  let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
-                  let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
-
-                  if (nit4bloque.includes("(")) {
+                  if (
+                    nit4bloque.includes("(") &&
+                    !nit4bloque.includes("NOMBRE")
+                  ) {
                     dividirNit = nit4bloque.split("(")[1];
                   } else {
                     dividirNit = nit6bloque.split("(")[1];
                   }
-
                   nit = dividirNit.split(")")[0];
                   company.nit = nit;
                 } else {
@@ -709,10 +719,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           }
 
           // MUESTREO TEMPORAL
-          console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
-          console.log(client.devengos);
-          console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
-          console.log(client.deducciones);
+          // console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
+          // console.log(client.devengos);
+          // console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
+          // console.log(client.deducciones);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
           resultObject = {
