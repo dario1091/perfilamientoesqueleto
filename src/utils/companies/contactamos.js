@@ -303,8 +303,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // LA LINEA ###################### ----------------------------------
               if (x.text.includes("NOMBRE") && parseFloat(top) < 0.7) {
                 // Guardando Salario base dependiendo de la linea
+                let text2BloqueDetras = arrayTextLine[i - 2].arrayText[0]?.text;
                 let text2Bloque = arrayTextLine[i + 2].arrayText[0]?.text;
+
                 let text4Bloque = arrayTextLine[i + 4].arrayText[0]?.text;
+
                 let text6Bloque = arrayTextLine[i + 6].arrayText[0]?.text;
 
                 // Guardando numero de cedula
@@ -337,10 +340,32 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     sueldo = omitirInfo.split(" ")[1];
                   } else if (x.text.includes("$")) {
                     sueldo = x.text.split("$")[1].trim();
+                  } else {
+                    sueldo = x.text.split(" ").pop();
                   }
                 } else if (x.text.includes("$")) {
                   // Caso especial
                   sueldo = x.text.split("$")[1].trim();
+                } else {
+                  //Caso especial
+                  if (x.text.includes(",")) {
+                    let getLastValue = x.text.split(" ").pop();
+                    if (getLastValue.indexOf(".") === 4) {
+                      sueldo = getLastValue.slice(1);
+                    } else {
+                      sueldo = getLastValue;
+                    }
+                  }
+                }
+
+                if (
+                  (text2BloqueDetras.includes("NOMINA") &&
+                    text2BloqueDetras.includes("$")) ||
+                  (text2BloqueDetras.includes("NOMINA") &&
+                    text2BloqueDetras.includes(","))
+                ) {
+                  let extraerSueldo = text2BloqueDetras.split("$")[1].trim();
+                  sueldo = extraerSueldo.split(" ")[0];
                 }
 
                 client.basico = sueldo;
