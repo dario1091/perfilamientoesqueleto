@@ -38,8 +38,8 @@ async function documentExtract(imagePath = "", isRequest = false) {
         secretAccessKey: process.env.SECRET_ACCESS_KEY,
       });
 
-      console.log("imagePath : " + imagePath);
-      console.log("FileName : " + fileName);
+      // console.log("imagePath : " + imagePath);
+      // console.log("FileName : " + fileName);
       var params = {
         Document: {
           Bytes: bufferImage,

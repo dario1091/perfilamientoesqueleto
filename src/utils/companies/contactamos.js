@@ -440,15 +440,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // GUARDANDO NOMBRE DE EMPRESA Y NIT ###################### ------------------
               if (
                 x.text.toUpperCase().includes("EMPRESA") &&
-                parseFloat(top) < 0.7
+                parseFloat(top) < 0.3
+                // !x.text.includes("Incapacidad Empresa")
               ) {
                 // Datos del nit
                 let dividirNit = "";
                 let nit = "";
 
                 // Datos de la empresa
-                let dividirEmpresa = x.text.split(": ")[1];
-                let name = dividirEmpresa.split("(")[0];
+                let dividirEmpresa = x.text.split(":")[1].trim();
+                // console.log(dividirEmpresa);
+                let name = dividirEmpresa.includes("(")
+                  ? dividirEmpresa.split("(")[0].trim()
+                  : dividirEmpresa;
 
                 let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
                 let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
@@ -473,6 +477,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   company.nit = nit;
                 } else {
                   // NOMBRE DE EMPRESA Y NIT EN LA MISMA LINEA
+
                   company.name = name;
 
                   dividirNit = x.text.split("(")[1];

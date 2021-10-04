@@ -12,7 +12,7 @@ async function worker() {
     //     }
     //     files.map((f) => {
     //       let nameFile = f.split(".")[0];
-    //       console.log(nameFile);
+    //       // console.log(nameFile);
     //       readPaymentgSupport(`src/docs/contactamos/1/${f}`).then(
     //         (response) => {
     //           if (response) {
@@ -34,7 +34,7 @@ async function worker() {
     //   "https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
 
     let awsPathFile =
-      "src/docs/contactamos/1/paymentSupport-5957e6937a457800.jpg";
+      "src/docs/contactamos/1/paymentSupport-77d09b69d22f43bb.jpg";
 
     await readPaymentgSupport(awsPathFile).then((response) => {
       if (response) {
