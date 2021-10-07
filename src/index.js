@@ -1,5 +1,5 @@
-const { readPaymentgSupport } = require("./utils/companies/contactamos.js");
-const fs = require("fs");
+const { readPaymentgSupport } = require("./utils/companies/salesland.js");
+// const fs = require("fs");
 
 async function worker() {
   try {
@@ -34,13 +34,13 @@ async function worker() {
     //   "https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
 
     let awsPathFile =
-      "src/docs/contactamos/1/paymentSupport-77d09b69d22f43bb.jpg";
+      "src/docs/salesland/1/paymentSupport-0caa47027120efec.png";
 
     await readPaymentgSupport(awsPathFile).then((response) => {
       if (response) {
-        console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
+        // console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
         console.log(":::::::::::::::    response    ::::::::::::::::::");
-        console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
+        // console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
         // fs.writeFileSync(
         //   "json/contactamos/1/paymentSupport-5957e6937a457800.json",
         //   JSON.stringify(response)
