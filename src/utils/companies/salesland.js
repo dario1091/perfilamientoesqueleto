@@ -25,7 +25,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
       let leftDiscounts = 0;
 
       let contConfidence = 0;
+      let contConfidence2 = 0;
       let totalDatos = 0;
+      let totalDatos2 = 0;
 
       let client = {
         name: "",
@@ -59,6 +61,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
         nit: "",
         name: "",
       };
+
+      let client2 = {
+        fechaIngreso: "NO REGISTRA",
+        banco: {},
+        devengos: {},
+        deducciones: {},
+      };
+
+      let company2 = {};
+
+      let contadorFacturas = 0;
+
+      let arrayAux = [];
 
       if (ext === ".png" || ext === ".jpeg" || ext === ".jpg") {
         (async () => {
@@ -106,6 +121,21 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine.push(newElem);
                 }
 
+                if (block.Text.toUpperCase().includes("NOMINA")) {
+                  arrayAux.push(block.Text);
+                  contadorFacturas++;
+                }
+
+                // Captura left de devengos y deducciones
+                if (block.Text.toUpperCase().includes("VALOR")) {
+                  if (block.Geometry.BoundingBox.Left.toFixed(2) < 0.5) {
+                    leftEarns = block.Geometry.BoundingBox.Left.toFixed(2);
+                  }
+                  if (block.Geometry.BoundingBox.Left.toFixed(2) > 0.5) {
+                    leftDiscounts = block.Geometry.BoundingBox.Left.toFixed(2);
+                  }
+                }
+
                 //TODO: Captura de valores left devengos
 
                 //TODO: Captura de valores left descuentos
@@ -114,6 +144,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
             }
             // ################################################## fin for
+          }
+
+          /**
+           * Lee 2 facturas con fechas distintas en un mismo documento
+           */
+          let dobleFactura = false;
+
+          if (arrayAux.length === 2) {
+            let nominaPrimeraFactura = arrayAux[0].split(" ").pop();
+            let nominaSegundaFactura = arrayAux[1].split(" ").pop();
+            if (nominaPrimeraFactura !== nominaSegundaFactura) {
+              dobleFactura = true;
+            }
           }
 
           /**
@@ -164,31 +207,186 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 top = x.top;
               }
 
-              //Guardando nombre de la compañía
-              if (x.text.includes("COLOMBIA")) {
-                company.name = x.text;
+              if (dobleFactura) {
+                if (top < 0.5) {
+                  contConfidence += x.confidence;
+                  totalDatos++;
+                  client.confidence = (contConfidence / totalDatos).toFixed(2);
+                }
+                if (top > 0.5) {
+                  contConfidence2 += x.confidence;
+                  totalDatos2++;
+                  client2.confidence = (contConfidence2 / totalDatos2).toFixed(
+                    2
+                  );
+                }
+              } else {
+                contConfidence += x.confidence;
+                totalDatos++;
+                client.confidence = (contConfidence / totalDatos).toFixed(2);
               }
-              // Guardando el nit de la compañía
-              if (x.text.includes("®")) {
-                company.nit = x.text.split(" ").pop();
+
+              // Guardando nombre de la compañía
+              if (
+                dobleFactura &&
+                x.text.includes("COLOMBIA") &&
+                !x.text.includes("BANCO")
+              ) {
+                if (top < 0.5) {
+                  company.name = x.text;
+                }
+                if (top > 0.5) {
+                  company2.name = x.text;
+                }
+              } else if (
+                x.text.includes("COLOMBIA") &&
+                !x.text.includes("BANCO")
+              ) {
+                company.name = x.text;
               }
 
               // Guardando nombre y documento del cliente
-              if (x.text.includes("COMPROBANTE DE PAGO")) {
+              if (dobleFactura && x.text.includes("COMPROBANTE DE PAGO")) {
+                if (top < 0.5) {
+                  client.documentNumber =
+                    arrayTextLine[block].arrayText[2]?.text;
+                  client.name = arrayTextLine[block].arrayText[0]?.text;
+
+                  // Captura de nit primera factura
+                  arrayTextLine[i - 1].arrayText.map((nit) => {
+                    if (nit.text.includes("-")) {
+                      console.log(nit);
+                      company.nit = nit.text.split(" ").pop();
+                    }
+                  });
+                }
+                if (top > 0.5) {
+                  client2.documentNumber =
+                    arrayTextLine[block].arrayText[2]?.text;
+                  client2.name = arrayTextLine[block].arrayText[0]?.text;
+
+                  // Captura de nit segunda factura
+                  arrayTextLine[i - 1].arrayText.map((nit) => {
+                    if (nit.text.includes("-")) {
+                      console.log(nit);
+                      company2.nit = nit.text.split(" ").pop();
+                    }
+                  });
+                }
+              } else if (x.text.includes("COMPROBANTE DE PAGO")) {
                 client.documentNumber = arrayTextLine[block].arrayText[2]?.text;
                 client.name = arrayTextLine[block].arrayText[0]?.text;
+
+                // Captura de nit
+                arrayTextLine[i - 1].arrayText.map((nit) => {
+                  if (nit.text.includes("-")) {
+                    console.log(nit);
+                    company.nit = nit.text.split(" ").pop();
+                  }
+                });
               }
 
               // Guardando convenio
-              if (x.text.startsWith("Convenio")) {
-                console.log(x);
-                
+              if (dobleFactura && x.text.toUpperCase().startsWith("CONVENIO")) {
+                top < 0.5 &&
+                  (client.convenio = x.text.split(" ").slice(1).join(" "));
+                top > 0.5 &&
+                  (client2.convenio = x.text.split(" ").slice(1).join(" "));
+              } else if (x.text.toUpperCase().startsWith("CONVENIO")) {
+                client.convenio = x.text.split(" ").slice(1).join(" ");
+              }
+
+              // Guardando nomina
+              if (dobleFactura && x.text.toUpperCase().startsWith("NOMINA")) {
+                top < 0.5 && (client.nomina = x.text.split(" ").pop());
+                top > 0.5 && (client2.nomina = x.text.split(" ").pop());
+              } else if (x.text.toUpperCase().startsWith("NOMINA")) {
+                client.nomina = x.text.split(" ").pop();
+              }
+
+              // Guardando pension
+              if (dobleFactura && x.text.toUpperCase().includes("PENSION")) {
+                top < 0.5 &&
+                  (client.pension = x.text.split(" ").slice(1).join(" "));
+                top > 0.5 &&
+                  (client2.pension = x.text.split(" ").slice(1).join(" "));
+              } else if (x.text.toUpperCase().includes("PENSION")) {
+                client.pension = x.text.split(" ").slice(1).join(" ");
+              }
+
+              // Guardando numero de cuenta
+              if (dobleFactura && x.text.toUpperCase().includes("CUENTA")) {
+                top < 0.5 && (client.banco.account = x.text.split(" ").pop());
+                top > 0.5 && (client2.banco.account = x.text.split(" ").pop());
+              } else if (x.text.toUpperCase().includes("CUENTA")) {
+                client.banco.account = x.text.split(" ").pop();
+              }
+
+              // Guardando nombre del banco
+              if (dobleFactura && x.text.toUpperCase().startsWith("BANCO")) {
+                top < 0.5 &&
+                  (client.banco.name = x.text.split(" ").slice(1).join(" "));
+                top > 0.5 &&
+                  (client2.banco.name = x.text.split(" ").slice(1).join(" "));
+              } else if (x.text.toUpperCase().startsWith("BANCO")) {
+                client.banco.name = x.text.split(" ").slice(1).join(" ");
+              }
+
+              // Guardando salario base
+              if (dobleFactura && x.text.includes("BASICO")) {
+                top < 0.5 && (client.basico = x.text.split(" ").pop());
+                top > 0.5 && (client2.basico = x.text.split(" ").pop());
+              } else if (x.text.includes("BASICO")) {
+                client.basico = x.text.split(" ").pop();
+              }
+
+              // Guardando cargo
+              if (dobleFactura && x.text.includes("CARGO")) {
+                top < 0.5 &&
+                  (client.cargo = x.text.split(" ").slice(1).join(" "));
+                top > 0.5 &&
+                  (client2.cargo = x.text.split(" ").slice(1).join(" "));
+              } else if (x.text.includes("CARGO")) {
+                client.cargo = x.text.split(" ").slice(1).join(" ");
+              }
+
+              // Guardando salud
+              if (dobleFactura && x.text.includes("SALUD")) {
+                top < 0.5 &&
+                  (client.salud = x.text.split(" ").slice(1).join(" "));
+                top > 0.5 &&
+                  (client2.salud = x.text.split(" ").slice(1).join(" "));
+              } else if (x.text.includes("SALUD")) {
+                client.salud = x.text.split(" ").slice(1).join(" ");
+              }
+
+              // Guardando neto
+              if (dobleFactura && x.text.includes("Base Sal")) {
+                console.log(x.text);
+                top < 0.5 && (client.sueldoNeto = x.text.split(" ").pop());
+                top > 0.5 && (client2.sueldoNeto = x.text.split(" ").pop());
+              } else if (x.text.includes("Base Sal")) {
+                client.sueldoNeto = x.text.split(" ").pop();
+              }
+
+              // Guardando subtotales de devengos y deducciones
+              if (dobleFactura && x.text.toUpperCase().includes("SUBTOTAL")) {
+                // console.log(x);
+                if (top < 0.5) {
+                  // client.deducciones.subtotal = ;
+                  // client.devengos.subtotal = ;
+                }
+
+                if (top > 0.5) {
+                  // client2.deducciones.subtotal = ;
+                  // client2.devengos.subtotal = ;
+                }
+              } else if (x.text.toUpperCase().includes("SUBTOTAL")) {
+                // client.deducciones.subtotal = ;
+                // client.devengos.subtotal = ;
               }
 
               // Calculo de puntuacion de confiabilidad de lectura del documento
-              contConfidence += x.confidence;
-              totalDatos++;
-              client.confidence = (contConfidence / totalDatos).toFixed(2);
             });
           }
 
@@ -249,12 +447,20 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           // console.log(client.deducciones);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
-          resultObject = {
-            client,
-            company,
-          };
+          //   resultObject = {
+          //     client,
+          //     company,
+          //   };
 
-          //   arrayTextLine.map((x) => console.log(x));
+          if (dobleFactura) {
+            resultObject = { client, company, client2, company2 };
+          } else {
+            resultObject = { client, company };
+          }
+
+          // console.log(client2);
+
+          // arrayTextLine.map((x) => console.log(x));
           jsonToRead ? resolve(resultObject) : resolve(false);
         })();
       }
