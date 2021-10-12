@@ -24,6 +24,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
        */
       let leftDiscounts = 0;
 
+      let leftValorEarns;
+      let leftValorDisc;
+
       let contConfidence = 0;
       let contConfidence2 = 0;
       let totalDatos = 0;
@@ -70,8 +73,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
       };
 
       let company2 = {};
-
-      let contadorFacturas = 0;
 
       let arrayAux = [];
 
@@ -123,22 +124,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 if (block.Text.toUpperCase().includes("NOMINA")) {
                   arrayAux.push(block.Text);
-                  contadorFacturas++;
                 }
 
                 // Captura left de devengos y deducciones
-                if (block.Text.toUpperCase().includes("VALOR")) {
+                if (block.Text.toUpperCase().includes("SUBTOTAL")) {
                   if (block.Geometry.BoundingBox.Left.toFixed(2) < 0.5) {
-                    leftEarns = block.Geometry.BoundingBox.Left.toFixed(2);
+                    leftValorEarns = block.Geometry.BoundingBox.Left.toFixed(2);
                   }
                   if (block.Geometry.BoundingBox.Left.toFixed(2) > 0.5) {
-                    leftDiscounts = block.Geometry.BoundingBox.Left.toFixed(2);
+                    leftValorDisc = block.Geometry.BoundingBox.Left.toFixed(2);
                   }
                 }
-
-                //TODO: Captura de valores left devengos
-
-                //TODO: Captura de valores left descuentos
 
                 // #################################################### fin if
               }
@@ -158,6 +154,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               dobleFactura = true;
             }
           }
+
+          // console.log(leftValorEarns);
+          // console.log(leftValorDisc);
 
           /**
            * TODO: Posición inicial de tabla de dev/ded
@@ -207,6 +206,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 top = x.top;
               }
 
+              // Calculo de puntuacion de confiabilidad de lectura del documento
               if (dobleFactura) {
                 if (top < 0.5) {
                   contConfidence += x.confidence;
@@ -232,12 +232,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 x.text.includes("COLOMBIA") &&
                 !x.text.includes("BANCO")
               ) {
-                if (top < 0.5) {
-                  company.name = x.text;
-                }
-                if (top > 0.5) {
-                  company2.name = x.text;
-                }
+                top < 0.5 && (company.name = x.text);
+                top > 0.5 && (company2.name = x.text);
               } else if (
                 x.text.includes("COLOMBIA") &&
                 !x.text.includes("BANCO")
@@ -255,7 +251,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   // Captura de nit primera factura
                   arrayTextLine[i - 1].arrayText.map((nit) => {
                     if (nit.text.includes("-")) {
-                      console.log(nit);
                       company.nit = nit.text.split(" ").pop();
                     }
                   });
@@ -268,7 +263,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   // Captura de nit segunda factura
                   arrayTextLine[i - 1].arrayText.map((nit) => {
                     if (nit.text.includes("-")) {
-                      console.log(nit);
                       company2.nit = nit.text.split(" ").pop();
                     }
                   });
@@ -280,7 +274,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 // Captura de nit
                 arrayTextLine[i - 1].arrayText.map((nit) => {
                   if (nit.text.includes("-")) {
-                    console.log(nit);
                     company.nit = nit.text.split(" ").pop();
                   }
                 });
@@ -361,32 +354,112 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
 
               // Guardando neto
-              if (dobleFactura && x.text.includes("Base Sal")) {
-                console.log(x.text);
-                top < 0.5 && (client.sueldoNeto = x.text.split(" ").pop());
-                top > 0.5 && (client2.sueldoNeto = x.text.split(" ").pop());
-              } else if (x.text.includes("Base Sal")) {
-                client.sueldoNeto = x.text.split(" ").pop();
+              if (
+                dobleFactura &&
+                (x.text.includes("CVS") || x.text.includes("SON"))
+              ) {
+                // Primera Factura validando signo $
+                top < 0.5 &&
+                  (client.sueldoNeto = arrayTextLine[
+                    i - 1
+                  ].arrayText[0]?.text.includes("$")
+                    ? arrayTextLine[i - 1].arrayText[0]?.text
+                        .split("$")[1]
+                        .trim()
+                    : arrayTextLine[i - 1].arrayText[0]?.text);
+
+                top > 0.5 &&
+                  (client2.sueldoNeto = arrayTextLine[
+                    i - 1
+                  ].arrayText[0]?.text.includes("$")
+                    ? arrayTextLine[i - 1].arrayText[0]?.text
+                        .split("$")[1]
+                        .trim()
+                    : arrayTextLine[i - 1].arrayText[0]?.text);
+              }
+              // Unica factura
+              else if (x.text.includes("CVS") || x.text.includes("SON")) {
+                let lastBlock = arrayTextLine[i - 1].arrayText[0]?.text;
+                if (lastBlock.includes("$")) {
+                  client.sueldoNeto = lastBlock.split("$")[1].trim();
+                } else {
+                  client.sueldoNeto = lastBlock;
+                }
               }
 
-              // Guardando subtotales de devengos y deducciones
+              // Guardando subtotales de devengos/deducciones
               if (dobleFactura && x.text.toUpperCase().includes("SUBTOTAL")) {
-                // console.log(x);
                 if (top < 0.5) {
-                  // client.deducciones.subtotal = ;
-                  // client.devengos.subtotal = ;
+                  // Captura de devengos primera factura
+                  if (arrayTextLine[i].arrayText[1]?.text.includes("$")) {
+                    client.devengos.subtotal = arrayTextLine[
+                      i
+                    ].arrayText[1]?.text
+                      .split("$")[1]
+                      .trim();
+                  } else {
+                    client.devengos.subtotal =
+                      arrayTextLine[i].arrayText[1]?.text;
+                  }
+                  // Captura de deducciones primera factura
+                  if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
+                    client.deducciones.subtotal = arrayTextLine[
+                      i
+                    ].arrayText[3]?.text
+                      .split("$")[1]
+                      .trim();
+                  } else {
+                    client.deducciones.subtotal =
+                      arrayTextLine[i].arrayText[3]?.text;
+                  }
                 }
 
                 if (top > 0.5) {
-                  // client2.deducciones.subtotal = ;
-                  // client2.devengos.subtotal = ;
+                  // Captura de devengos segunda factura
+                  if (arrayTextLine[i].arrayText[1]?.text.includes("$")) {
+                    client2.devengos.subtotal = arrayTextLine[
+                      i
+                    ].arrayText[1]?.text
+                      .split("$")[1]
+                      .trim();
+                  } else {
+                    client2.devengos.subtotal =
+                      arrayTextLine[i].arrayText[1]?.text;
+                  }
+                  // Captura de deducciones segunda factura
+                  if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
+                    client2.deducciones.subtotal = arrayTextLine[
+                      i
+                    ].arrayText[3]?.text
+                      .split("$")[1]
+                      .trim();
+                  } else {
+                    client2.deducciones.subtotal =
+                      arrayTextLine[i].arrayText[3]?.text;
+                  }
                 }
               } else if (x.text.toUpperCase().includes("SUBTOTAL")) {
-                // client.deducciones.subtotal = ;
-                // client.devengos.subtotal = ;
+                // Captura de devengos unica factura
+                if (arrayTextLine[i].arrayText[1]?.text.includes("$")) {
+                  client.devengos.subtotal = arrayTextLine[i].arrayText[1]?.text
+                    .split("$")[1]
+                    .trim();
+                } else {
+                  client.devengos.subtotal =
+                    arrayTextLine[i].arrayText[1]?.text;
+                }
+                // Captura de deducciones unica factura
+                if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
+                  client.deducciones.subtotal = arrayTextLine[
+                    i
+                  ].arrayText[3]?.text
+                    .split("$")[1]
+                    .trim();
+                } else {
+                  client.deducciones.subtotal =
+                    arrayTextLine[i].arrayText[3]?.text;
+                }
               }
-
-              // Calculo de puntuacion de confiabilidad de lectura del documento
             });
           }
 
