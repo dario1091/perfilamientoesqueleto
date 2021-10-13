@@ -449,7 +449,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 // Datos de la empresa
                 let dividirEmpresa = x.text.split(":")[1].trim();
-                // console.log(dividirEmpresa);
+
                 let name = dividirEmpresa.includes("(")
                   ? dividirEmpresa.split("(")[0].trim()
                   : dividirEmpresa;
