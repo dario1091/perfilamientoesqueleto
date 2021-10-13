@@ -122,18 +122,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine.push(newElem);
                 }
 
+                // Guardando nominas para comparar si hay mas de 2 facturas
+                // en 1 sola imagen
                 if (block.Text.toUpperCase().includes("NOMINA")) {
                   arrayAux.push(block.Text);
-                }
-
-                // Captura left de devengos y deducciones
-                if (block.Text.toUpperCase().includes("SUBTOTAL")) {
-                  if (block.Geometry.BoundingBox.Left.toFixed(2) < 0.5) {
-                    leftValorEarns = block.Geometry.BoundingBox.Left.toFixed(2);
-                  }
-                  if (block.Geometry.BoundingBox.Left.toFixed(2) > 0.5) {
-                    leftValorDisc = block.Geometry.BoundingBox.Left.toFixed(2);
-                  }
                 }
 
                 // #################################################### fin if
@@ -155,13 +147,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             }
           }
 
-          // console.log(leftValorEarns);
-          // console.log(leftValorDisc);
+          let leftBasic;
 
           /**
            * TODO: Posición inicial de tabla de dev/ded
            */
-          let init;
+          let init = arrayTextLine
+            .map((e) => {
+              return e.arrayText[0].text;
+            })
+            .indexOf("DEVENGOS");
+
+          console.log(init);
+          // let init2 =
 
           // referencia para capturar el fin de la tabla
 
@@ -169,8 +167,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            * TODO: Posición final de tabla de dev/ded y campo
            * de subtotales devengos y deducciones
            */
-          let end;
+          let end = arrayTextLine
+            .map((e) => {
+              return e.arrayText[0].text;
+            })
+            .indexOf("SUBTOTAL");
 
+          console.log(end);
           /**
            * Coordenadas top del documento
            */
@@ -329,18 +332,26 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               if (dobleFactura && x.text.includes("BASICO")) {
                 top < 0.5 && (client.basico = x.text.split(" ").pop());
                 top > 0.5 && (client2.basico = x.text.split(" ").pop());
+                leftBasic = (x.left - 0.03).toFixed(2);
               } else if (x.text.includes("BASICO")) {
+                leftBasic = (x.left - 0.03).toFixed(2);
                 client.basico = x.text.split(" ").pop();
               }
 
               // Guardando cargo
               if (dobleFactura && x.text.includes("CARGO")) {
                 top < 0.5 &&
-                  (client.cargo = x.text.split(" ").slice(1).join(" "));
+                  (client.cargo = x.text.includes(":")
+                    ? x.text.split(":").slice(1).join(" ").trim()
+                    : x.text.split(" ").slice(1).join(" "));
                 top > 0.5 &&
-                  (client2.cargo = x.text.split(" ").slice(1).join(" "));
+                  (client2.cargo = x.text.includes(":")
+                    ? x.text.split(":").slice(1).join(" ").trim()
+                    : x.text.split(" ").slice(1).join(" "));
               } else if (x.text.includes("CARGO")) {
-                client.cargo = x.text.split(" ").slice(1).join(" ");
+                client.cargo = x.text.includes(":")
+                  ? x.text.split(":").slice(1).join(" ").trim()
+                  : x.text.split(" ").slice(1).join(" ");
               }
 
               // Guardando salud
@@ -508,14 +519,76 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             client.deducciones.confidence = "0";
           }
 
+          // console.log(leftBasic);
+
+          leftEarns = arrayTextLine[init].arrayText[0]?.left;
+          let leftCantidadDevengo = arrayTextLine[init].arrayText[1]?.left;
+          let leftValorDevengo = arrayTextLine[init].arrayText[2]?.left;
+          // leftDiscounts = arrayTextLine[init].arrayText[3]?.left;
+          let leftCantidadDeduccion = arrayTextLine[init].arrayText[4]?.left;
+          let leftValorDeduccion = arrayTextLine[init].arrayText[5]?.left;
+
           // RECORRIDO DE TABLA
           for (let i = init + 1; i < end; i++) {
-            arrayTextLine[i].arrayText.map((x) => {});
+            // Captura de devengos
+            if (arrayTextLine[i].arrayText[0]?.left < leftBasic) {
+              arrayTextLine[i].arrayText.map((x) => {
+                if (x.left < leftBasic) {
+                  // console.log(x);
+                  let valueOnAmount =
+                    arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
+                      ? arrayTextLine[i].arrayText[2]?.text
+                      : 0;
+
+                  let conceptoCodigo =
+                    arrayTextLine[i].arrayText[0]?.left > leftEarns
+                      ? 0
+                      : arrayTextLine[i].arrayText[0]?.text;
+                  let concepto =
+                    // 0.10 > 0.03 0.10
+                    // arrayTextLine[i + 1].arrayText[0]?.left ===
+                    // arrayTextLine[i].arrayText[1]?.left
+                    //   ? arrayTextLine[i].arrayText[0]?.text.concat(
+                    //       " " + arrayTextLine[i + 1].arrayText[0]?.text
+                    //     )
+                    //   :
+                    arrayTextLine[i].arrayText[1]?.text;
+                  let unidades =
+                    arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
+                      ? arrayTextLine[i].arrayText[2]?.text
+                      : 0;
+                  let devengo =
+                    arrayTextLine[i].arrayText[3]?.left < leftBasic
+                      ? arrayTextLine[i].arrayText[3]?.text
+                      : valueOnAmount;
+
+                  elementDevengos = {
+                    conceptoCodigo,
+                    concepto,
+                    unidades,
+                    precio: "N/A",
+                    devengo,
+                  };
+                  contConfidence += x.confidence;
+                  totalDatos++;
+                  client.devengos.confidence = (
+                    contConfidence / totalDatos
+                  ).toFixed(2);
+                }
+              });
+
+              // if (
+              //   !arrayTextLine[i].arrayText[0]?.left > 0.07 &&
+              //   !arrayTextLine[i].arrayText[1] === undefined
+              // ) {
+              client.devengos.list.push(elementDevengos);
+              // }
+            }
           }
 
           // MUESTREO TEMPORAL
-          // console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
-          // console.log(client.devengos);
+          console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
+          console.log(client.devengos);
           // console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
           // console.log(client.deducciones);
 
