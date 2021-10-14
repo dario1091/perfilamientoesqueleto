@@ -59,6 +59,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
         name: "",
       };
 
+      let endFirma;
+
       if (ext === ".png" || ext === ".jpeg" || ext === ".jpg") {
         (async () => {
           let jsonToRead = await documentExtract(filePath, isRequest);
@@ -131,6 +133,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   leftDiscounts = block.Geometry.BoundingBox.Left.toFixed(2);
                 }
 
+                if (block.Text.toUpperCase().includes("FIRMA")) {
+                  endFirma = block.Text;
+                }
+
                 // #################################################### fin if
               }
             }
@@ -165,7 +171,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             .map((e) => {
               return e.arrayText[0].text;
             })
-            .indexOf("Firma:");
+            .indexOf(endFirma);
 
           /**
            * Posición final de tabla de dev/ded y campo
@@ -749,10 +755,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           }
 
           // MUESTREO TEMPORAL
-          // console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
-          // console.log(client.devengos);
-          // console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
-          // console.log(client.deducciones);
+          console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
+          console.log(client.devengos);
+          console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
+          console.log(client.deducciones);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
           resultObject = {
