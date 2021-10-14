@@ -117,8 +117,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
       let client2 = {
         fechaIngreso: "NO REGISTRA",
         banco: {},
-        devengos: {},
-        deducciones: {},
+        devengos: {
+          list: [],
+        },
+        deducciones: {
+          list: [],
+        },
       };
 
       let company2 = {};
@@ -201,7 +205,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let leftBasic;
           let leftConceptoDevengo;
-          let leftPension;
 
           /**
            * Posición inicial de tabla de dev/ded
@@ -213,10 +216,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             .indexOf("DEVENGOS");
 
           console.log(init);
-          // let init2 =
-
-          // referencia para capturar el fin de la tabla
-
           /**
            * Posición final de tabla de dev/ded y campo
            * de subtotales devengos y deducciones
@@ -228,6 +227,30 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             .indexOf("SUBTOTAL");
 
           console.log(end);
+
+          // Referencias de inicio y fin de recorrido de la tabla para segunda factura
+          // unica imagen
+          let init2 = dobleFactura
+            ? arrayTextLine
+                .map((e) => {
+                  if (e.arrayText[0]?.top > 0.5) {
+                    return e.arrayText[0]?.text;
+                  }
+                })
+                .indexOf("DEVENGOS")
+            : 0;
+          console.log(init2);
+
+          let end2 = dobleFactura
+            ? arrayTextLine
+                .map((e) => {
+                  if (e.arrayText[0]?.top > 0.5) {
+                    return e.arrayText[0].text;
+                  }
+                })
+                .indexOf("SUBTOTAL")
+            : 0;
+          console.log(end2);
           /**
            * Coordenadas top del documento
            */
@@ -276,6 +299,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   client2.confidence = (contConfidence2 / totalDatos2).toFixed(
                     2
                   );
+
+                  // if (x.text.includes("DEVENGOS")) {
+
+                  // }
                 }
               } else {
                 contConfidence += x.confidence;
@@ -589,6 +616,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let elementDeducciones = {};
 
+          let elementDevengos2 = {};
+          let elementDeducciones2 = {};
           // Recorriendo la tabla
 
           /**
@@ -632,7 +661,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           let leftCantidadDevengo = arrayTextLine[init].arrayText[1]?.left;
           let leftValorDevengo = arrayTextLine[init].arrayText[2]?.left;
           leftDiscounts = arrayTextLine[init].arrayText[3]?.left;
-          let leftCantidadDeduccion = arrayTextLine[init].arrayText[4]?.left;
           let leftValorDeduccion = arrayTextLine[init].arrayText[5]?.left;
 
           // RECORRIDO DE TABLA
@@ -641,6 +669,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             if (arrayTextLine[i].arrayText[0]?.left < leftBasic) {
               arrayTextLine[i].arrayText.map((x) => {
                 if (x.left < leftBasic) {
+                  // Ternario de devengo en el campo de cantidad
                   let valueOnAmount =
                     arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
                       ? arrayTextLine[i].arrayText[2]?.text
@@ -650,6 +679,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     arrayTextLine[i].arrayText[0]?.left > leftEarns
                       ? 0
                       : arrayTextLine[i].arrayText[0]?.text;
+
                   let concepto =
                     // 0.10 > 0.03 0.10
                     arrayTextLine[i].arrayText[1]?.left ===
@@ -659,10 +689,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                           " " + arrayTextLine[i + 1].arrayText[0]?.text
                         )
                       : arrayTextLine[i].arrayText[1]?.text;
+
                   let unidades =
                     arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
                       ? arrayTextLine[i].arrayText[2]?.text
                       : 0;
+
                   let devengo =
                     arrayTextLine[i].arrayText[3]?.left < leftBasic
                       ? arrayTextLine[i].arrayText[3]?.text
@@ -691,8 +723,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 client.devengos.list.push(elementDevengos);
               }
             }
-            // TODO: Lectura de deducciones
 
+            // Lectura de deducciones
             arrayTextLine[i].arrayText.map((x) => {
               if (x.left >= leftBasic && x.left < leftDiscounts) {
                 indiceCodigoDeduccion = arrayTextLine[i].arrayText.findIndex(
@@ -711,18 +743,37 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             });
 
             if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
-              // console.log(indiceCodigoDeduccion);
-              // let valueOnAmount =
+              // Validando si el texto del concepto es demasiado largo y si viene
+              // combinado con una linea en devengos
+              let concepValidation =
+                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.left ===
+                arrayTextLine[i + 1].arrayText[1]?.left
+                  ? arrayTextLine[i].arrayText[
+                      indiceCodigoDeduccion + 1
+                    ]?.text.concat(
+                      " " + arrayTextLine[i + 1].arrayText[1]?.text
+                    )
+                  : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.text;
 
               let conceptoCodigo =
                 arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
+
               let concepto =
-                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.text;
+                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.left ===
+                arrayTextLine[i + 1].arrayText[0]?.left
+                  ? arrayTextLine[i].arrayText[
+                      indiceCodigoDeduccion + 1
+                    ]?.text.concat(
+                      " " + arrayTextLine[i + 1].arrayText[0]?.text
+                    )
+                  : concepValidation;
+
               let unidades =
                 arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left <
                 leftValorDeduccion
                   ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.text
                   : 0;
+
               let deduccion =
                 arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left >=
                 leftValorDeduccion
@@ -741,11 +792,149 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             }
           }
 
+          if (dobleFactura) {
+            for (let i = init2 + 1; i < end2; i++) {
+              if (arrayTextLine[i].arrayText[0]?.left < leftBasic) {
+                arrayTextLine[i].arrayText.map((x) => {
+                  if (x.left < leftBasic) {
+                    // Ternario de devengo en el campo de cantidad
+                    let valueOnAmount =
+                      arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
+                        ? arrayTextLine[i].arrayText[2]?.text
+                        : 0;
+
+                    let conceptoCodigo =
+                      arrayTextLine[i].arrayText[0]?.left > leftEarns
+                        ? 0
+                        : arrayTextLine[i].arrayText[0]?.text;
+
+                    let concepto =
+                      // 0.10 > 0.03 0.10
+                      arrayTextLine[i].arrayText[1]?.left ===
+                        arrayTextLine[i + 1].arrayText[0]?.left &&
+                      arrayTextLine[i + 1].arrayText[1] === undefined
+                        ? arrayTextLine[i].arrayText[1]?.text.concat(
+                            " " + arrayTextLine[i + 1].arrayText[0]?.text
+                          )
+                        : arrayTextLine[i].arrayText[1]?.text;
+
+                    let unidades =
+                      arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
+                        ? arrayTextLine[i].arrayText[2]?.text
+                        : 0;
+
+                    let devengo =
+                      arrayTextLine[i].arrayText[3]?.left < leftBasic
+                        ? arrayTextLine[i].arrayText[3]?.text
+                        : valueOnAmount;
+
+                    elementDevengos2 = {
+                      conceptoCodigo,
+                      concepto,
+                      unidades,
+                      precio: "N/A",
+                      devengo,
+                    };
+                    contConfidence += x.confidence;
+                    totalDatos++;
+                    client2.devengos.confidence = (
+                      contConfidence / totalDatos
+                    ).toFixed(2);
+                  }
+                });
+                if (
+                  !(
+                    arrayTextLine[i].arrayText[0]?.left > leftConceptoDevengo &&
+                    arrayTextLine[i].arrayText[0]?.left < leftCantidadDevengo
+                  )
+                ) {
+                  client2.devengos.list.push(elementDevengos2);
+                }
+              }
+
+              // Lectura de deducciones
+              arrayTextLine[i].arrayText.map((x) => {
+                if (x.left >= leftBasic && x.left < leftDiscounts) {
+                  indiceCodigoDeduccion = arrayTextLine[i].arrayText.findIndex(
+                    (center) => {
+                      return x === center;
+                    }
+                  );
+                }
+                if (x.left > leftBasic) {
+                  contConfidence += x.confidence;
+                  totalDatos++;
+                  client2.deducciones.confidence = (
+                    contConfidence / totalDatos
+                  ).toFixed(2);
+                }
+              });
+
+              if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
+                // Validando si el texto del concepto es demasiado largo y si viene
+                // combinado con una linea en devengos
+                let concepValidation =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                    ?.left === arrayTextLine[i + 1].arrayText[1]?.left
+                    ? arrayTextLine[i].arrayText[
+                        indiceCodigoDeduccion + 1
+                      ]?.text.concat(
+                        " " + arrayTextLine[i + 1].arrayText[1]?.text
+                      )
+                    : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                        ?.text;
+
+                let conceptoCodigo =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
+
+                let concepto =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                    ?.left === arrayTextLine[i + 1].arrayText[0]?.left
+                    ? arrayTextLine[i].arrayText[
+                        indiceCodigoDeduccion + 1
+                      ]?.text.concat(
+                        " " + arrayTextLine[i + 1].arrayText[0]?.text
+                      )
+                    : concepValidation;
+
+                let unidades =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left <
+                  leftValorDeduccion
+                    ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+                        ?.text
+                    : 0;
+
+                let deduccion =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left >=
+                  leftValorDeduccion
+                    ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+                        ?.text
+                    : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 3]
+                        ?.text;
+
+                elementDeducciones2 = {
+                  conceptoCodigo,
+                  concepto,
+                  unidades,
+                  precio: "N/A",
+                  deduccion,
+                };
+
+                client2.deducciones.list.push(elementDeducciones2);
+              }
+            }
+          }
+
           // MUESTREO TEMPORAL
-          // console.log(":::::::::::::::::::DEVENGOS:::::::::::::::::::");
+          // console.log(":::::::::::::::::::DEVENGOS 1:::::::::::::::::::");
           // console.log(client.devengos);
-          console.log(":::::::::::::::::::DEDUCCIONES:::::::::::::::::::");
-          console.log(client.deducciones);
+          // console.log(":::::::::::::::::::DEDUCCIONES 1:::::::::::::::::::");
+          // console.log(client.deducciones);
+
+          console.log(":::::::::::::::::::DEVENGOS 2:::::::::::::::::::");
+          console.log(client2.devengos);
+          console.log(":::::::::::::::::::DEDUCCIONES 2:::::::::::::::::::");
+          console.log(client2.deducciones);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
           //   resultObject = {
