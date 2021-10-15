@@ -299,10 +299,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   client2.confidence = (contConfidence2 / totalDatos2).toFixed(
                     2
                   );
-
-                  // if (x.text.includes("DEVENGOS")) {
-
-                  // }
                 }
               } else {
                 contConfidence += x.confidence;
@@ -383,31 +379,23 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // Guardando pension
               if (dobleFactura && x.text.toUpperCase().startsWith("PENSION")) {
-                leftPension = x.left;
+                let save = readMultipleLines(
+                  i,
+                  "CUENTA",
+                  x,
+                  0,
+                  1,
+                  arrayTextLine
+                );
                 // Validando que tenga varias lineas la pension en la primera factura
                 if (top < 0.5) {
-                  client.pension = readMultipleLines(
-                    i,
-                    "CUENTA",
-                    x,
-                    0,
-                    1,
-                    arrayTextLine
-                  );
+                  client.pension = save;
                 }
                 // Validando que tenga varias lineas la pension en la segunda factura
                 if (top > 0.5) {
-                  client2.pension = readMultipleLines(
-                    i,
-                    "CUENTA",
-                    x,
-                    0,
-                    1,
-                    arrayTextLine
-                  );
+                  client2.pension = save;
                 }
               } else if (x.text.toUpperCase().startsWith("PENSION")) {
-                leftPension = x.left;
                 // Validando que tenga varias lineas la pension
                 client.pension = readMultipleLines(
                   i,
@@ -429,24 +417,16 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // Guardando nombre del banco
               if (dobleFactura && x.text.toUpperCase().startsWith("BANCO")) {
-                top < 0.5 &&
-                  (client.banco.name = readMultipleLines(
-                    i,
-                    "DEVENGOS",
-                    x,
-                    0,
-                    0,
-                    arrayTextLine
-                  ));
-                top > 0.5 &&
-                  (client2.banco.name = readMultipleLines(
-                    i,
-                    "DEVENGOS",
-                    x,
-                    0,
-                    0,
-                    arrayTextLine
-                  ));
+                let save = readMultipleLines(
+                  i,
+                  "DEVENGOS",
+                  x,
+                  0,
+                  0,
+                  arrayTextLine
+                );
+                top < 0.5 && (client.banco.name = save);
+                top > 0.5 && (client2.banco.name = save);
               } else if (x.text.toUpperCase().startsWith("BANCO")) {
                 client.banco.name = readMultipleLines(
                   i,
@@ -665,47 +645,125 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
           // RECORRIDO DE TABLA
           for (let i = init + 1; i < end; i++) {
+            let codeOnValue;
             // Captura de devengos
             if (arrayTextLine[i].arrayText[0]?.left < leftBasic) {
               arrayTextLine[i].arrayText.map((x) => {
+                let desc;
+                let conceptoCodigo;
+                let concepto;
+                let unidades;
+                let devengo;
                 if (x.left < leftBasic) {
                   // Ternario de devengo en el campo de cantidad
-                  let valueOnAmount =
-                    arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
-                      ? arrayTextLine[i].arrayText[2]?.text
-                      : 0;
+                  let valueOnAmount;
 
-                  let conceptoCodigo =
-                    arrayTextLine[i].arrayText[0]?.left > leftEarns
-                      ? 0
-                      : arrayTextLine[i].arrayText[0]?.text;
+                  desc = arrayTextLine[i].arrayText[0]?.text
+                    .replace(/[\d]+/g, "")
+                    .split(" ")[1];
 
-                  let concepto =
-                    // 0.10 > 0.03 0.10
-                    arrayTextLine[i].arrayText[1]?.left ===
-                      arrayTextLine[i + 1].arrayText[0]?.left &&
-                    arrayTextLine[i + 1].arrayText[1] === undefined
-                      ? arrayTextLine[i].arrayText[1]?.text.concat(
-                          " " + arrayTextLine[i + 1].arrayText[0]?.text
-                        )
-                      : arrayTextLine[i].arrayText[1]?.text;
+                  // Si viene concepto separado
+                  if (!desc) {
+                    valueOnAmount =
+                      arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
+                        ? arrayTextLine[i].arrayText[2]?.text
+                        : 0;
+                    conceptoCodigo =
+                      arrayTextLine[i].arrayText[0]?.left > leftEarns
+                        ? 0
+                        : arrayTextLine[i].arrayText[0]?.text;
+                    concepto =
+                      arrayTextLine[i].arrayText[1]?.left ===
+                        arrayTextLine[i + 1].arrayText[0]?.left &&
+                      arrayTextLine[i + 1].arrayText[1] === undefined
+                        ? arrayTextLine[i].arrayText[1]?.text.concat(
+                            " " + arrayTextLine[i + 1].arrayText[0]?.text
+                          )
+                        : arrayTextLine[i].arrayText[1]?.text;
+                    unidades =
+                      arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
+                        ? arrayTextLine[i].arrayText[2]?.text
+                        : 0;
+                    devengo =
+                      arrayTextLine[i].arrayText[3]?.left < leftBasic
+                        ? arrayTextLine[i].arrayText[3]?.text
+                        : valueOnAmount;
+                  }
+                  // Si viene el codigo junto al concepto
+                  else {
+                    valueOnAmount =
+                      arrayTextLine[i].arrayText[1]?.left >= leftCantidadDevengo
+                        ? arrayTextLine[i].arrayText[1]?.text
+                        : 0;
+                    conceptoCodigo =
+                      arrayTextLine[i].arrayText[0]?.left > leftEarns
+                        ? 0
+                        : arrayTextLine[i].arrayText[0]?.text.replace(
+                            /\D/g,
+                            ""
+                          );
 
-                  let unidades =
-                    arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
-                      ? arrayTextLine[i].arrayText[2]?.text
-                      : 0;
+                    concepto =
+                      arrayTextLine[i].arrayText[0]?.left ===
+                        arrayTextLine[i + 1].arrayText[0]?.left &&
+                      arrayTextLine[i + 1].arrayText[1] === undefined
+                        ? arrayTextLine[i].arrayText[0]?.text
+                            .replace(/[\d]+/g, "")
+                            .concat(
+                              " " + arrayTextLine[i + 1].arrayText[0]?.text
+                            )
+                        : arrayTextLine[i].arrayText[0]?.text
+                            .replace(/[\d]+/g, "")
+                            .trim();
 
-                  let devengo =
-                    arrayTextLine[i].arrayText[3]?.left < leftBasic
-                      ? arrayTextLine[i].arrayText[3]?.text
-                      : valueOnAmount;
+                    unidades =
+                      arrayTextLine[i].arrayText[1]?.left < leftValorDevengo
+                        ? arrayTextLine[i].arrayText[1]?.text
+                        : 0;
+
+                    devengo =
+                      arrayTextLine[i].arrayText[2]?.left < leftBasic
+                        ? arrayTextLine[i].arrayText[2]?.text
+                        : valueOnAmount;
+                  }
+
+                  // Si existe valores en millones (2 comas)
+                  if (devengo !== 0 && devengo.split(",")[2]) {
+                    if (devengo.split(",")[2].length === 2) {
+                      devengo = devengo.concat("0");
+                    } else if (devengo.split(",")[2].length > 3) {
+                      let indexValue =
+                        devengo.indexOf(devengo.split(",")[2]) + 3;
+                      devengo = devengo.slice(0, indexValue);
+                      codeOnValue = devengo.split(",")[2]?.slice(3);
+                    }
+                  }
+                  // Si existe valores en miles (1 coma)
+                  else if (devengo !== 0 && devengo.split(",")[1]) {
+                    if (devengo.split(",")[1].length === 2) {
+                      devengo = devengo.concat("0");
+                    } else if (devengo.split(",")[1].length > 3) {
+                      let indexValue = devengo.indexOf(",") + 4;
+                      devengo = devengo.slice(0, indexValue);
+                      codeOnValue = devengo.split(",")[1]?.slice(3);
+                    }
+                  }
+
+                  // Si la lectura del valor de devengo viene incompleta
+                  // se aproxima con un 0
+                  let reformatDevengo =
+                    devengo !== 0 && devengo.split(",")[1].length === 2
+                      ? devengo.concat("0")
+                      : devengo;
+
+                  console.log(codeOnValue);
 
                   elementDevengos = {
                     conceptoCodigo,
                     concepto,
                     unidades,
                     precio: "N/A",
-                    devengo,
+                    devengo: reformatDevengo,
                   };
                   contConfidence += x.confidence;
                   totalDatos++;
@@ -747,7 +805,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // combinado con una linea en devengos
               let concepValidation =
                 arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.left ===
-                arrayTextLine[i + 1].arrayText[1]?.left
+                  arrayTextLine[i + 1].arrayText[1]?.left &&
+                arrayTextLine[i + 1].arrayText[0]?.left < leftBasic
                   ? arrayTextLine[i].arrayText[
                       indiceCodigoDeduccion + 1
                     ]?.text.concat(
@@ -793,148 +852,135 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           }
 
           if (dobleFactura) {
-            for (let i = init2 + 1; i < end2; i++) {
-              if (arrayTextLine[i].arrayText[0]?.left < leftBasic) {
-                arrayTextLine[i].arrayText.map((x) => {
-                  if (x.left < leftBasic) {
-                    // Ternario de devengo en el campo de cantidad
-                    let valueOnAmount =
-                      arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
-                        ? arrayTextLine[i].arrayText[2]?.text
-                        : 0;
-
-                    let conceptoCodigo =
-                      arrayTextLine[i].arrayText[0]?.left > leftEarns
-                        ? 0
-                        : arrayTextLine[i].arrayText[0]?.text;
-
-                    let concepto =
-                      // 0.10 > 0.03 0.10
-                      arrayTextLine[i].arrayText[1]?.left ===
-                        arrayTextLine[i + 1].arrayText[0]?.left &&
-                      arrayTextLine[i + 1].arrayText[1] === undefined
-                        ? arrayTextLine[i].arrayText[1]?.text.concat(
-                            " " + arrayTextLine[i + 1].arrayText[0]?.text
-                          )
-                        : arrayTextLine[i].arrayText[1]?.text;
-
-                    let unidades =
-                      arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
-                        ? arrayTextLine[i].arrayText[2]?.text
-                        : 0;
-
-                    let devengo =
-                      arrayTextLine[i].arrayText[3]?.left < leftBasic
-                        ? arrayTextLine[i].arrayText[3]?.text
-                        : valueOnAmount;
-
-                    elementDevengos2 = {
-                      conceptoCodigo,
-                      concepto,
-                      unidades,
-                      precio: "N/A",
-                      devengo,
-                    };
-                    contConfidence += x.confidence;
-                    totalDatos++;
-                    client2.devengos.confidence = (
-                      contConfidence / totalDatos
-                    ).toFixed(2);
-                  }
-                });
-                if (
-                  !(
-                    arrayTextLine[i].arrayText[0]?.left > leftConceptoDevengo &&
-                    arrayTextLine[i].arrayText[0]?.left < leftCantidadDevengo
-                  )
-                ) {
-                  client2.devengos.list.push(elementDevengos2);
-                }
-              }
-
-              // Lectura de deducciones
-              arrayTextLine[i].arrayText.map((x) => {
-                if (x.left >= leftBasic && x.left < leftDiscounts) {
-                  indiceCodigoDeduccion = arrayTextLine[i].arrayText.findIndex(
-                    (center) => {
-                      return x === center;
-                    }
-                  );
-                }
-                if (x.left > leftBasic) {
-                  contConfidence += x.confidence;
-                  totalDatos++;
-                  client2.deducciones.confidence = (
-                    contConfidence / totalDatos
-                  ).toFixed(2);
-                }
-              });
-
-              if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
-                // Validando si el texto del concepto es demasiado largo y si viene
-                // combinado con una linea en devengos
-                let concepValidation =
-                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
-                    ?.left === arrayTextLine[i + 1].arrayText[1]?.left
-                    ? arrayTextLine[i].arrayText[
-                        indiceCodigoDeduccion + 1
-                      ]?.text.concat(
-                        " " + arrayTextLine[i + 1].arrayText[1]?.text
-                      )
-                    : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
-                        ?.text;
-
-                let conceptoCodigo =
-                  arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
-
-                let concepto =
-                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
-                    ?.left === arrayTextLine[i + 1].arrayText[0]?.left
-                    ? arrayTextLine[i].arrayText[
-                        indiceCodigoDeduccion + 1
-                      ]?.text.concat(
-                        " " + arrayTextLine[i + 1].arrayText[0]?.text
-                      )
-                    : concepValidation;
-
-                let unidades =
-                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left <
-                  leftValorDeduccion
-                    ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
-                        ?.text
-                    : 0;
-
-                let deduccion =
-                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left >=
-                  leftValorDeduccion
-                    ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
-                        ?.text
-                    : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 3]
-                        ?.text;
-
-                elementDeducciones2 = {
-                  conceptoCodigo,
-                  concepto,
-                  unidades,
-                  precio: "N/A",
-                  deduccion,
-                };
-
-                client2.deducciones.list.push(elementDeducciones2);
-              }
-            }
+            // for (let i = init2 + 1; i < end2; i++) {
+            //   if (arrayTextLine[i].arrayText[0]?.left < leftBasic) {
+            //     arrayTextLine[i].arrayText.map((x) => {
+            //       if (x.left < leftBasic) {
+            //         // Ternario de devengo en el campo de cantidad
+            //         let valueOnAmount =
+            //           arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
+            //             ? arrayTextLine[i].arrayText[2]?.text
+            //             : 0;
+            //         let conceptoCodigo =
+            //           arrayTextLine[i].arrayText[0]?.left > leftEarns
+            //             ? 0
+            //             : arrayTextLine[i].arrayText[0]?.text;
+            //         let concepto =
+            //           // 0.10 > 0.03 0.10
+            //           arrayTextLine[i].arrayText[1]?.left ===
+            //             arrayTextLine[i + 1].arrayText[0]?.left &&
+            //           arrayTextLine[i + 1].arrayText[1] === undefined
+            //             ? arrayTextLine[i].arrayText[1]?.text.concat(
+            //                 " " + arrayTextLine[i + 1].arrayText[0]?.text
+            //               )
+            //             : arrayTextLine[i].arrayText[1]?.text;
+            //         let unidades =
+            //           arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
+            //             ? arrayTextLine[i].arrayText[2]?.text
+            //             : 0;
+            //         let devengo =
+            //           arrayTextLine[i].arrayText[3]?.left < leftBasic
+            //             ? arrayTextLine[i].arrayText[3]?.text
+            //             : valueOnAmount;
+            //         elementDevengos2 = {
+            //           conceptoCodigo,
+            //           concepto,
+            //           unidades,
+            //           precio: "N/A",
+            //           devengo,
+            //         };
+            //         contConfidence += x.confidence;
+            //         totalDatos++;
+            //         client2.devengos.confidence = (
+            //           contConfidence / totalDatos
+            //         ).toFixed(2);
+            //       }
+            //     });
+            //     if (
+            //       !(
+            //         arrayTextLine[i].arrayText[0]?.left > leftConceptoDevengo &&
+            //         arrayTextLine[i].arrayText[0]?.left < leftCantidadDevengo
+            //       )
+            //     ) {
+            //       client2.devengos.list.push(elementDevengos2);
+            //     }
+            //   }
+            //   // Lectura de deducciones
+            //   arrayTextLine[i].arrayText.map((x) => {
+            //     if (x.left >= leftBasic && x.left < leftDiscounts) {
+            //       indiceCodigoDeduccion = arrayTextLine[i].arrayText.findIndex(
+            //         (center) => {
+            //           return x === center;
+            //         }
+            //       );
+            //     }
+            //     if (x.left > leftBasic) {
+            //       contConfidence += x.confidence;
+            //       totalDatos++;
+            //       client2.deducciones.confidence = (
+            //         contConfidence / totalDatos
+            //       ).toFixed(2);
+            //     }
+            //   });
+            //   if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
+            //     // Validando si el texto del concepto es demasiado largo y si viene
+            //     // combinado con una linea en devengos
+            //     let concepValidation =
+            //       arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+            //         ?.left === arrayTextLine[i + 1].arrayText[1]?.left
+            //         ? arrayTextLine[i].arrayText[
+            //             indiceCodigoDeduccion + 1
+            //           ]?.text.concat(
+            //             " " + arrayTextLine[i + 1].arrayText[1]?.text
+            //           )
+            //         : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+            //             ?.text;
+            //     let conceptoCodigo =
+            //       arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
+            //     let concepto =
+            //       arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+            //         ?.left === arrayTextLine[i + 1].arrayText[0]?.left
+            //         ? arrayTextLine[i].arrayText[
+            //             indiceCodigoDeduccion + 1
+            //           ]?.text.concat(
+            //             " " + arrayTextLine[i + 1].arrayText[0]?.text
+            //           )
+            //         : concepValidation;
+            //     let unidades =
+            //       arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left <
+            //       leftValorDeduccion
+            //         ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+            //             ?.text
+            //         : 0;
+            //     let deduccion =
+            //       arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left >=
+            //       leftValorDeduccion
+            //         ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+            //             ?.text
+            //         : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 3]
+            //             ?.text;
+            //     elementDeducciones2 = {
+            //       conceptoCodigo,
+            //       concepto,
+            //       unidades,
+            //       precio: "N/A",
+            //       deduccion,
+            //     };
+            //     client2.deducciones.list.push(elementDeducciones2);
+            //   }
+            // }
           }
 
           // MUESTREO TEMPORAL
-          // console.log(":::::::::::::::::::DEVENGOS 1:::::::::::::::::::");
-          // console.log(client.devengos);
-          // console.log(":::::::::::::::::::DEDUCCIONES 1:::::::::::::::::::");
-          // console.log(client.deducciones);
+          console.log(":::::::::::::::::::DEVENGOS 1:::::::::::::::::::");
+          console.log(client.devengos);
+          console.log(":::::::::::::::::::DEDUCCIONES 1:::::::::::::::::::");
+          console.log(client.deducciones);
 
-          console.log(":::::::::::::::::::DEVENGOS 2:::::::::::::::::::");
-          console.log(client2.devengos);
-          console.log(":::::::::::::::::::DEDUCCIONES 2:::::::::::::::::::");
-          console.log(client2.deducciones);
+          // console.log(":::::::::::::::::::DEVENGOS 2:::::::::::::::::::");
+          // console.log(client2.devengos);
+          // console.log(":::::::::::::::::::DEDUCCIONES 2:::::::::::::::::::");
+          // console.log(client2.deducciones);
 
           // AÑADIENDO LOS RESULTADOS DE LOS OBJETOS
           //   resultObject = {
