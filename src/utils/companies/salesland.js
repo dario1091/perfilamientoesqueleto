@@ -727,25 +727,25 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                         : valueOnAmount;
                   }
 
-                  // Si existe valores en millones (2 comas)
+                  // Si existe valores en millones (2 comas) combinados
                   if (devengo !== 0 && devengo.split(",")[2]) {
                     if (devengo.split(",")[2].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(",")[2].length > 3) {
+                      codeOnValue = devengo.split(",")[2]?.slice(3);
                       let indexValue =
                         devengo.indexOf(devengo.split(",")[2]) + 3;
                       devengo = devengo.slice(0, indexValue);
-                      codeOnValue = devengo.split(",")[2]?.slice(3);
                     }
                   }
-                  // Si existe valores en miles (1 coma)
+                  // Si existe valores en miles (1 coma) combinados
                   else if (devengo !== 0 && devengo.split(",")[1]) {
                     if (devengo.split(",")[1].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(",")[1].length > 3) {
+                      codeOnValue = devengo.split(",")[1]?.slice(3);
                       let indexValue = devengo.indexOf(",") + 4;
                       devengo = devengo.slice(0, indexValue);
-                      codeOnValue = devengo.split(",")[1]?.slice(3);
                     }
                   }
 
@@ -755,8 +755,6 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     devengo !== 0 && devengo.split(",")[1].length === 2
                       ? devengo.concat("0")
                       : devengo;
-
-                  console.log(codeOnValue);
 
                   elementDevengos = {
                     conceptoCodigo,
@@ -781,7 +779,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 client.devengos.list.push(elementDevengos);
               }
             }
-
+            // -----------------------------------------------------------------
             // Lectura de deducciones
             arrayTextLine[i].arrayText.map((x) => {
               if (x.left >= leftBasic && x.left < leftDiscounts) {
@@ -801,6 +799,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             });
 
             if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
+              let desc = arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text
+                .replace(/[\d]+/g, "")
+                .split(" ")[1];
+              console.log(desc);
+              // if (!desc) {
+              // } else {
+              // }
+
               // Validando si el texto del concepto es demasiado largo y si viene
               // combinado con una linea en devengos
               let concepValidation =

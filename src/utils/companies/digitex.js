@@ -437,20 +437,26 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // List de devengos
               if (x.left > leftEarns && x.left < leftDiscounts) {
                 // console.log(arrayTextLine[i].arrayText[0].text);
+                let concepto = arrayTextLine[i].arrayText[0]?.text;
+                let unidades =
+                  arrayTextLine[i].arrayText[1]?.left >= leftEarns
+                    ? 0
+                    : arrayTextLine[i].arrayText[1]?.text;
+                let precio =
+                  arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
+                    ? arrayTextLine[i].arrayText[2]?.text
+                    : 0;
+                let devengo =
+                  arrayTextLine[i].arrayText[3]?.left >= leftEarns
+                    ? arrayTextLine[i].arrayText[3]?.text
+                    : columnaUnidadVacia;
+
                 elementDevengos = {
-                  concepto: arrayTextLine[i].arrayText[0]?.text,
-                  unidades:
-                    arrayTextLine[i].arrayText[1]?.left >= leftEarns
-                      ? 0
-                      : arrayTextLine[i].arrayText[1]?.text,
-                  precio:
-                    arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
-                      ? arrayTextLine[i].arrayText[2]?.text
-                      : 0,
-                  devengo:
-                    arrayTextLine[i].arrayText[3]?.left >= leftEarns
-                      ? arrayTextLine[i].arrayText[3]?.text
-                      : columnaUnidadVacia,
+                  conceptoCodigo: "N/A",
+                  concepto,
+                  unidades,
+                  precio,
+                  devengo,
                 };
 
                 contConfidence += x.confidence;
@@ -463,20 +469,26 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // List de descuentos
               else if (x.left >= leftDiscounts) {
+                let concepto = arrayTextLine[i].arrayText[0]?.text;
+                let unidades =
+                  arrayTextLine[i].arrayText[1]?.left >= leftDiscounts
+                    ? 0
+                    : arrayTextLine[i].arrayText[1]?.text;
+                let precio =
+                  arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
+                    ? arrayTextLine[i].arrayText[2]?.text
+                    : 0;
+                let descuentos =
+                  arrayTextLine[i].arrayText[3]?.left >= leftDiscounts
+                    ? arrayTextLine[i].arrayText[3]?.text
+                    : columnaUnidadVacia;
+
                 elementDescuentos = {
-                  concepto: arrayTextLine[i].arrayText[0]?.text,
-                  unidades:
-                    arrayTextLine[i].arrayText[1]?.left >= leftDiscounts
-                      ? 0
-                      : arrayTextLine[i].arrayText[1]?.text,
-                  precio:
-                    arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
-                      ? arrayTextLine[i].arrayText[2]?.text
-                      : 0,
-                  descuentos:
-                    arrayTextLine[i].arrayText[3]?.left >= leftDiscounts
-                      ? arrayTextLine[i].arrayText[3]?.text
-                      : columnaUnidadVacia,
+                  codigoConcepto: "N/A",
+                  concepto,
+                  unidades,
+                  precio,
+                  descuentos,
                 };
 
                 contConfidence += x.confidence;
