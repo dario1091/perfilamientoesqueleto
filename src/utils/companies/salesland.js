@@ -799,61 +799,89 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             });
 
             if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
-              let desc = arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text
-                .replace(/[\d]+/g, "")
-                .split(" ")[1];
-              console.log(desc);
+              // let desc = arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text
+              //   .replace(/[\d]+/g, "")
+              //   .split(" ")[1];
+              // console.log(desc);
               // if (!desc) {
               // } else {
               // }
+              if (
+                arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.left >=
+                leftBasic
+              ) {
+                console.log(arrayTextLine[i].arrayText[indiceCodigoDeduccion]);
 
-              // Validando si el texto del concepto es demasiado largo y si viene
-              // combinado con una linea en devengos
-              let concepValidation =
-                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.left ===
-                  arrayTextLine[i + 1].arrayText[1]?.left &&
-                arrayTextLine[i + 1].arrayText[0]?.left < leftBasic
-                  ? arrayTextLine[i].arrayText[
-                      indiceCodigoDeduccion + 1
-                    ]?.text.concat(
-                      " " + arrayTextLine[i + 1].arrayText[1]?.text
-                    )
-                  : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.text;
+                let concepto;
+                let conceptoCodigo;
+                let unidades;
 
-              let conceptoCodigo =
-                arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
+                // Validando si el texto del concepto es demasiado largo y si viene
+                // combinado con una linea en devengos
+                let concepValidation =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                    ?.left === arrayTextLine[i + 1].arrayText[1]?.left &&
+                  arrayTextLine[i + 1].arrayText[0]?.left < leftBasic
+                    ? arrayTextLine[i].arrayText[
+                        indiceCodigoDeduccion + 1
+                      ]?.text.concat(
+                        " " + arrayTextLine[i + 1].arrayText[1]?.text
+                      )
+                    : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                        ?.text;
 
-              let concepto =
-                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]?.left ===
-                arrayTextLine[i + 1].arrayText[0]?.left
-                  ? arrayTextLine[i].arrayText[
-                      indiceCodigoDeduccion + 1
-                    ]?.text.concat(
-                      " " + arrayTextLine[i + 1].arrayText[0]?.text
-                    )
-                  : concepValidation;
+                if (codeOnValue) {
+                  conceptoCodigo = codeOnValue;
 
-              let unidades =
-                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left <
-                leftValorDeduccion
-                  ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.text
-                  : 0;
+                  concepto =
+                    arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
 
-              let deduccion =
-                arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left >=
-                leftValorDeduccion
-                  ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.text
-                  : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 3]?.text;
+                  unidades =
+                    arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                      ?.left >= leftValorDeduccion
+                      ? 0
+                      : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                          ?.text;
+                } else {
+                  concepto =
+                    arrayTextLine[i].arrayText[indiceCodigoDeduccion + 1]
+                      ?.left === arrayTextLine[i + 1].arrayText[0]?.left
+                      ? arrayTextLine[i].arrayText[
+                          indiceCodigoDeduccion + 1
+                        ]?.text.concat(
+                          " " + arrayTextLine[i + 1].arrayText[0]?.text
+                        )
+                      : concepValidation;
 
-              elementDeducciones = {
-                conceptoCodigo,
-                concepto,
-                unidades,
-                precio: "N/A",
-                deduccion,
-              };
+                  conceptoCodigo =
+                    arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text;
 
-              client.deducciones.list.push(elementDeducciones);
+                  unidades =
+                    arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+                      ?.left < leftValorDeduccion
+                      ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+                          ?.text
+                      : 0;
+                }
+
+                let deduccion =
+                  arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]?.left >=
+                  leftValorDeduccion
+                    ? arrayTextLine[i].arrayText[indiceCodigoDeduccion + 2]
+                        ?.text
+                    : arrayTextLine[i].arrayText[indiceCodigoDeduccion + 3]
+                        ?.text;
+
+                elementDeducciones = {
+                  conceptoCodigo,
+                  concepto,
+                  unidades,
+                  precio: "N/A",
+                  deduccion,
+                };
+
+                client.deducciones.list.push(elementDeducciones);
+              }
             }
           }
 
