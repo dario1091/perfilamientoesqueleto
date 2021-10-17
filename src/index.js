@@ -34,7 +34,7 @@ async function worker() {
     //   "https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
 
     let awsPathFile =
-      "src/docs/salesland/1/paymentSupport-2eb5afcf95546f9f-1.png";
+      "src/docs/salesland/1/paymentSupport-3ac720cb62c69727.jpg";
 
     await readPaymentgSupport(awsPathFile).then((response) => {
       if (response) {

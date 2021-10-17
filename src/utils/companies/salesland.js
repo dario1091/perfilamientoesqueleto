@@ -412,6 +412,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 top < 0.5 && (client.banco.account = x.text.split(" ").pop());
                 top > 0.5 && (client2.banco.account = x.text.split(" ").pop());
               } else if (x.text.toUpperCase().startsWith("CUENTA")) {
+                //TODO: cuenta separada
+                console.log(x);
                 client.banco.account = x.text.split(" ").pop();
               }
 
@@ -744,6 +746,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       devengo = devengo.concat("0");
                     } else if (devengo.split(",")[1].length > 3) {
                       codeOnValue = devengo.split(",")[1]?.slice(3);
+                      // console.log(codeOnValue);
                       let indexValue = devengo.indexOf(",") + 4;
                       devengo = devengo.slice(0, indexValue);
                     }
@@ -782,13 +785,44 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             // -----------------------------------------------------------------
             // Lectura de deducciones
             arrayTextLine[i].arrayText.map((x) => {
+              // Confirmacion de si existe en el devengo el codigo pegado a su
+              // descripcion
+              let descDevengo = arrayTextLine[i].arrayText[0]?.text
+                .replace(/[\d]+/g, "")
+                .split(" ")[1];
+
               if (x.left >= leftBasic && x.left < leftDiscounts) {
                 indiceCodigoDeduccion = arrayTextLine[i].arrayText.findIndex(
                   (center) => {
                     return x === center;
                   }
                 );
+              } else if (codeOnValue) {
+                if (
+                  (descDevengo &&
+                    arrayTextLine[i].arrayText[1]?.left >=
+                      leftCantidadDevengo) ||
+                  (!descDevengo &&
+                    arrayTextLine[i].arrayText[2]?.left >= leftValorDevengo)
+                ) {
+                  // console.log("entra 1 codeOnvalue");
+                  indiceCodigoDeduccion = 3;
+                } else if (
+                  descDevengo &&
+                  arrayTextLine[i].arrayText[1]?.left >= leftValorDevengo
+                ) {
+                  // console.log("entra 2 codeOnvalue");
+                  indiceCodigoDeduccion = 2;
+                } else if (
+                  !descDevengo &&
+                  arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
+                ) {
+                  // console.log("entra 3 codeOnvalue");
+                  indiceCodigoDeduccion = 4;
+                }
               }
+
+              // Calculo confidence
               if (x.left > leftBasic) {
                 contConfidence += x.confidence;
                 totalDatos++;
@@ -798,20 +832,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
             });
 
+            console.log("value " + indiceCodigoDeduccion);
             if (arrayTextLine[i].arrayText[indiceCodigoDeduccion]) {
-              // let desc = arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.text
-              //   .replace(/[\d]+/g, "")
-              //   .split(" ")[1];
-              // console.log(desc);
-              // if (!desc) {
-              // } else {
-              // }
               if (
                 arrayTextLine[i].arrayText[indiceCodigoDeduccion]?.left >=
                 leftBasic
               ) {
-                console.log(arrayTextLine[i].arrayText[indiceCodigoDeduccion]);
-
                 let concepto;
                 let conceptoCodigo;
                 let unidades;
