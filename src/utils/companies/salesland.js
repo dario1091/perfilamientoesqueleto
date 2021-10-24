@@ -24,31 +24,46 @@ const readMultipleLines = (
   } else if (
     array[i + 3].arrayText[columnValidation]?.text.includes(textValidation)
   ) {
-    saveData = textReceived.text
-      .split(" ")
-      .slice(1)
-      .join(" ")
-      .concat(
-        " " +
-          array[i + 1].arrayText[columnOrigen]?.text +
+    if (
+      textReceived.left === array[i + 1].arrayText[columnOrigen]?.left ||
+      textReceived.left === array[i + 2].arrayText[columnOrigen]?.left
+    ) {
+      saveData = textReceived.text
+        .split(" ")
+        .slice(1)
+        .join(" ")
+        .concat(
           " " +
-          array[i + 2].arrayText[columnOrigen]?.text
-      );
+            array[i + 1].arrayText[columnOrigen]?.text +
+            " " +
+            array[i + 2].arrayText[columnOrigen]?.text
+        );
+    } else {
+      saveData = textReceived.text.split(" ").slice(1).join(" ");
+    }
   } else if (
     array[i + 4].arrayText[columnValidation]?.text.includes(textValidation)
   ) {
-    saveData = textReceived.text
-      .split(" ")
-      .slice(1)
-      .join(" ")
-      .concat(
-        " " +
-          array[i + 1].arrayText[columnOrigen]?.text +
+    if (
+      textReceived.left === array[i + 1].arrayText[columnOrigen]?.left ||
+      textReceived.left === array[i + 2].arrayText[columnOrigen]?.left ||
+      textReceived.left === array[i + 3].arrayText[columnOrigen]?.left
+    ) {
+      saveData = textReceived.text
+        .split(" ")
+        .slice(1)
+        .join(" ")
+        .concat(
           " " +
-          array[i + 2].arrayText[columnOrigen]?.text +
-          " " +
-          array[i + 3].arrayText[columnOrigen]?.text
-      );
+            array[i + 1].arrayText[columnOrigen]?.text +
+            " " +
+            array[i + 2].arrayText[columnOrigen]?.text +
+            " " +
+            array[i + 3].arrayText[columnOrigen]?.text
+        );
+    } else {
+      saveData = textReceived.text.split(" ").slice(1).join(" ");
+    }
   }
 
   return saveData;
@@ -207,6 +222,11 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           let leftConceptoDevengo;
 
           /**
+           * Referencias top de las columnas de la tabla
+           */
+          let topSueldo;
+
+          /**
            * Posición inicial de tabla de dev/ded
            */
           let init = arrayTextLine
@@ -215,7 +235,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             })
             .indexOf("DEVENGOS");
 
-          // console.log(init);
+          console.log(init);
           /**
            * Posición final de tabla de dev/ded y campo
            * de subtotales devengos y deducciones
@@ -226,7 +246,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             })
             .indexOf("SUBTOTAL");
 
-          // console.log(end);
+          console.log(end);
 
           // Referencias de inicio y fin de recorrido de la tabla para segunda factura
           // unica imagen
@@ -371,14 +391,20 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
 
               // Guardando convenio
-              if (dobleFactura && x.text.toUpperCase().startsWith("CONVENIO")) {
+              if (
+                (dobleFactura && x.text.toUpperCase().startsWith("CONVENIO")) ||
+                x.text.toUpperCase().startsWith("CONVENIA")
+              ) {
                 let convenio = x.text.includes("-")
                   ? x.text.split("-")[1].trim()
                   : x.text.split(" ").slice(1).join(" ");
 
                 top < 0.5 && (client.convenio = convenio);
                 top > 0.5 && (client2.convenio = convenio);
-              } else if (x.text.toUpperCase().startsWith("CONVENIO")) {
+              } else if (
+                x.text.toUpperCase().startsWith("CONVENIO") ||
+                x.text.toUpperCase().startsWith("CONVENIA")
+              ) {
                 client.convenio = x.text.includes("-")
                   ? x.text.split("-")[1].trim()
                   : x.text.split(" ").slice(1).join(" ");
@@ -538,19 +564,27 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // Unica factura
               else if (x.text.includes("CVS") || x.text.startsWith("SON")) {
                 leftConceptoDevengo = x.left;
-                let lastBlock = arrayTextLine[i - 1].arrayText[0]?.text;
-                if (lastBlock.includes("$")) {
-                  if (lastBlock.includes(". .")) {
-                    let temp = lastBlock.split("$")[1];
+                let lastBlock = arrayTextLine[i - 1].arrayText[0] || false;
+
+                if (lastBlock.text.includes("SUBTOTAL")) {
+                  client.sueldoNeto = (
+                    client.devengos.subtotal - client.deducciones.subtotal
+                  ).toString();
+                } else if (lastBlock.text.includes("$")) {
+                  if (lastBlock.text.includes(". .")) {
+                    let temp = lastBlock.text.split("$")[1];
                     client.sueldoNeto = temp.split(". .").join(".").trim();
                   } else {
-                    client.sueldoNeto = lastBlock.split("$")[1].trim();
+                    client.sueldoNeto = lastBlock.text.split("$")[1].trim();
                   }
                 } else {
                   if (lastBlock.includes(". .")) {
-                    client.sueldoNeto = lastBlock.split(". .").join(".").trim();
+                    client.sueldoNeto = lastBlock.text
+                      .split(". .")
+                      .join(".")
+                      .trim();
                   } else {
-                    client.sueldoNeto = lastBlock;
+                    client.sueldoNeto = lastBlock.text;
                   }
                 }
               }
@@ -589,15 +623,53 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   client2.deducciones.subtotal = subDeduccion;
                 }
               } else if (x.text.toUpperCase().includes("SUBTOTAL")) {
+                // Ternario para guardar la referencia top del sueldo
+                // si viene 3 bloques debajo
+                let cvsRef3Bloque = arrayTextLine[
+                  i + 3
+                ].arrayText[0]?.text.includes("CVS")
+                  ? arrayTextLine[i + 2].arrayText[0]?.top
+                  : 0;
+
+                // Ternario para guardar la referencia top del sueldo
+                // si viene 2 bloques debajo
+                let cvsRef2Bloque = arrayTextLine[
+                  i + 2
+                ].arrayText[0]?.text.includes("CVS")
+                  ? arrayTextLine[i + 1].arrayText[0]?.top
+                  : cvsRef3Bloque;
+
+                // referencia top para almacenar subtotales
+                topSueldo = arrayTextLine[i + 1].arrayText[0]?.text.includes(
+                  "CVS"
+                )
+                  ? arrayTextLine[i].arrayText[0]?.top
+                  : cvsRef2Bloque;
+
+                // Si los valores de los subtotales vienen un bloque abajo
+                let backBlockReference =
+                  arrayTextLine[i + 1].arrayText[0] || false;
+
                 // Captura de devengos unica factura
                 if (arrayTextLine[i].arrayText[1]?.text.includes("$")) {
                   client.devengos.subtotal = arrayTextLine[i].arrayText[1]?.text
                     .split("$")[1]
                     .trim();
                 } else {
-                  client.devengos.subtotal =
-                    arrayTextLine[i].arrayText[1]?.text;
+                  if (
+                    arrayTextLine[i].arrayText[1]?.text.includes("SUBTOTAL")
+                  ) {
+                    client.devengos.subtotal = arrayTextLine[
+                      i
+                    ].arrayText[0]?.text
+                      .split("$")[1]
+                      .trim();
+                  } else {
+                    client.devengos.subtotal =
+                      arrayTextLine[i].arrayText[1]?.text;
+                  }
                 }
+
                 // Captura de deducciones unica factura
                 if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
                   client.deducciones.subtotal = arrayTextLine[
@@ -608,6 +680,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 } else {
                   client.deducciones.subtotal =
                     arrayTextLine[i].arrayText[3]?.text;
+                }
+
+                if (
+                  (!client.deducciones.subtotal ||
+                    client.deducciones.subtotal === "SUBTOTAL") &&
+                  backBlockReference?.text.includes("$") &&
+                  backBlockReference?.top < topSueldo
+                ) {
+                  client.deducciones.subtotal = backBlockReference.text
+                    .split("$")[1]
+                    .trim();
                 }
               }
             });
@@ -668,6 +751,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           let leftCantidadDevengo = arrayTextLine[init].arrayText[1]?.left;
           let leftValorDevengo = arrayTextLine[init].arrayText[2]?.left;
           leftDiscounts = arrayTextLine[init].arrayText[3]?.left;
+          let leftCantidadDedu = arrayTextLine[init].arrayText[4]?.left;
           let leftValorDeduccion = arrayTextLine[init].arrayText[5]?.left;
 
           // RECORRIDO DE TABLA
@@ -682,6 +766,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let unidades;
                 let devengo;
                 if (x.left < leftBasic) {
+                  // console.log(x);
                   // Ternario de devengo en el campo de cantidad
                   let valueOnAmount;
 
@@ -691,14 +776,33 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                   // Si viene concepto separado
                   if (!desc) {
+                    let textOnCode = isNaN(
+                      arrayTextLine[i].arrayText[0]?.text.replace(/[\d]+/g, "")
+                    )
+                      ? "No leible"
+                      : arrayTextLine[i].arrayText[0]?.text;
+
                     valueOnAmount =
-                      arrayTextLine[i].arrayText[2]?.left >= leftCantidadDevengo
+                      arrayTextLine[i].arrayText[2]?.left >= leftValorDevengo &&
+                      arrayTextLine[i].arrayText[2]?.left <= leftBasic
                         ? arrayTextLine[i].arrayText[2]?.text
                         : 0;
+
+                    let amountOnConcept =
+                      arrayTextLine[i].arrayText[1]?.left >= leftCantidadDevengo
+                        ? "No leible"
+                        : arrayTextLine[i].arrayText[1]?.text;
+
+                    let amountDif =
+                      arrayTextLine[i].arrayText[1]?.left >= leftCantidadDevengo
+                        ? arrayTextLine[i].arrayText[1]?.text
+                        : 0;
+
                     conceptoCodigo =
                       arrayTextLine[i].arrayText[0]?.left > leftEarns
                         ? 0
-                        : arrayTextLine[i].arrayText[0]?.text;
+                        : textOnCode;
+
                     concepto =
                       arrayTextLine[i].arrayText[1]?.left ===
                         arrayTextLine[i + 1].arrayText[0]?.left &&
@@ -706,11 +810,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                         ? arrayTextLine[i].arrayText[1]?.text.concat(
                             " " + arrayTextLine[i + 1].arrayText[0]?.text
                           )
-                        : arrayTextLine[i].arrayText[1]?.text;
+                        : amountOnConcept;
+
                     unidades =
                       arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
                         ? arrayTextLine[i].arrayText[2]?.text
-                        : 0;
+                        : amountDif;
+
                     devengo =
                       arrayTextLine[i].arrayText[3]?.left <= leftBasic
                         ? arrayTextLine[i].arrayText[3]?.text
@@ -722,6 +828,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       arrayTextLine[i].arrayText[1]?.left >= leftCantidadDevengo
                         ? arrayTextLine[i].arrayText[1]?.text
                         : 0;
+
                     conceptoCodigo =
                       arrayTextLine[i].arrayText[0]?.left > leftEarns
                         ? 0
@@ -760,6 +867,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                   // Si existe valores en millones (3 comas) combinados
                   if (devengo !== 0 && devengo.split(",")[3]) {
+                    // console.log("entro 1");
                     if (devengo.split(",")[3].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(",")[3].length === 6) {
@@ -774,6 +882,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   }
                   // Si el devengo lo toma en miles con . <- punto
                   else if (devengo !== 0 && devengo.split(".")[3]) {
+                    // console.log("entro 1 .");
                     if (devengo.split(".")[3].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(".")[3].length === 6) {
@@ -788,6 +897,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   }
                   // Si existe valores en millones (2 comas) combinados
                   else if (devengo !== 0 && devengo.split(",")[2]) {
+                    // console.log("entro 2");
                     if (devengo.split(",")[2].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(",")[2].length === 6) {
@@ -800,6 +910,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       devengo = devengo.slice(0, idx);
                     }
                   } else if (devengo !== 0 && devengo.split(".")[2]) {
+                    // console.log("entro 2 .");
                     if (devengo.split(".")[2].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(".")[2].length === 6) {
@@ -815,6 +926,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   }
                   // Si existe valores en miles (1 coma) combinados
                   else if (devengo !== 0 && devengo.split(",")[1]) {
+                    // console.log("entro 3");
                     if (devengo.split(",")[1].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(",")[1].length > 3) {
@@ -823,6 +935,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       devengo = devengo.slice(0, indexValue);
                     }
                   } else if (devengo !== 0 && devengo.split(".")[1]) {
+                    // console.log("entro 3 .");
                     if (devengo.split(".")[1].length === 2) {
                       devengo = devengo.concat("0");
                     } else if (devengo.split(".")[1].length > 3) {
@@ -856,6 +969,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 client.devengos.list.push(elementDevengos);
               }
             }
+
             // -----------------------------------------------------------------
             // Lectura de deducciones
             arrayTextLine[i].arrayText.map((x) => {
@@ -1019,15 +1133,39 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                     // Si viene concepto separado
                     if (!desc) {
+                      let textOnCode = isNaN(
+                        arrayTextLine[i].arrayText[0]?.text.replace(
+                          /[\d]+/g,
+                          ""
+                        )
+                      )
+                        ? "No leible"
+                        : arrayTextLine[i].arrayText[0]?.text;
+
                       valueOnAmount =
                         arrayTextLine[i].arrayText[2]?.left >=
-                        leftCantidadDevengo
+                          leftValorDevengo &&
+                        arrayTextLine[i].arrayText[2]?.left <= leftBasic
                           ? arrayTextLine[i].arrayText[2]?.text
                           : 0;
+
+                      let amountOnConcept =
+                        arrayTextLine[i].arrayText[1]?.left >=
+                        leftCantidadDevengo
+                          ? "No leible"
+                          : arrayTextLine[i].arrayText[1]?.text;
+
+                      let amountDif =
+                        arrayTextLine[i].arrayText[1]?.left >=
+                        leftCantidadDevengo
+                          ? arrayTextLine[i].arrayText[1]?.text
+                          : 0;
+
                       conceptoCodigo =
                         arrayTextLine[i].arrayText[0]?.left > leftEarns
                           ? 0
-                          : arrayTextLine[i].arrayText[0]?.text;
+                          : textOnCode;
+
                       concepto =
                         arrayTextLine[i].arrayText[1]?.left ===
                           arrayTextLine[i + 1].arrayText[0]?.left &&
@@ -1035,11 +1173,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                           ? arrayTextLine[i].arrayText[1]?.text.concat(
                               " " + arrayTextLine[i + 1].arrayText[0]?.text
                             )
-                          : arrayTextLine[i].arrayText[1]?.text;
+                          : amountOnConcept;
+
                       unidades =
                         arrayTextLine[i].arrayText[2]?.left < leftValorDevengo
                           ? arrayTextLine[i].arrayText[2]?.text
-                          : 0;
+                          : amountDif;
+
                       devengo =
                         arrayTextLine[i].arrayText[3]?.left <= leftBasic
                           ? arrayTextLine[i].arrayText[3]?.text
@@ -1052,6 +1192,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                         leftCantidadDevengo
                           ? arrayTextLine[i].arrayText[1]?.text
                           : 0;
+
                       conceptoCodigo =
                         arrayTextLine[i].arrayText[0]?.left > leftEarns
                           ? 0
@@ -1190,6 +1331,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // -----------------------------------------------------------------
               // Lectura de deducciones
               arrayTextLine[i].arrayText.map((x) => {
+                console.log(x);
                 // Confirmacion de si existe en el devengo el codigo pegado a su
                 // descripcion
                 let descDevengo = arrayTextLine[i].arrayText[0]?.text
@@ -1332,10 +1474,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           }
 
           // MUESTREO TEMPORAL
-          // console.log(":::::::::::::::::::DEVENGOS 1:::::::::::::::::::");
-          // console.log(client.devengos);
-          // console.log(":::::::::::::::::::DEDUCCIONES 1:::::::::::::::::::");
-          // console.log(client.deducciones);
+          console.log(":::::::::::::::::::DEVENGOS 1:::::::::::::::::::");
+          console.log(client.devengos);
+          console.log(":::::::::::::::::::DEDUCCIONES 1:::::::::::::::::::");
+          console.log(client.deducciones);
 
           // console.log(":::::::::::::::::::DEVENGOS 2:::::::::::::::::::");
           // console.log(client2.devengos);
