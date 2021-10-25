@@ -87,7 +87,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   }
                 }
                 if (pos !== -1) {
-                  arrayTextLine[pos].arrayText.push({
+                  arrayTextLine[pos]?.arrayText.push({
                     top: ":::" + strTop,
                     text: block.Text,
                     left: block.Geometry.BoundingBox.Left.toFixed(2),
@@ -144,7 +144,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           }
 
           let textFindInit = arrayTextLine.map((e) => {
-            return e.arrayText[0].text;
+            return e.arrayText[0]?.text;
           });
 
           /**
@@ -169,7 +169,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           // referencia para capturar el fin de la tabla
           let calcEnd = arrayTextLine
             .map((e) => {
-              return e.arrayText[0].text;
+              return e.arrayText[0]?.text;
             })
             .indexOf(endFirma);
 
@@ -179,12 +179,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let end;
           // El neto se encuentra 3 bloques antes
-          if (arrayTextLine[calcEnd - 3].arrayText[0]?.text.includes("NETO:")) {
+          if (
+            arrayTextLine[calcEnd - 3]?.arrayText[0]?.text.includes("NETO:")
+          ) {
             end = calcEnd - 4;
           }
           // El neto se encuentra 4 bloques antes
           else if (
-            arrayTextLine[calcEnd - 4].arrayText[0]?.text.includes("NETO:")
+            arrayTextLine[calcEnd - 4]?.arrayText[0]?.text.includes("NETO:")
           ) {
             end = calcEnd - 5;
           }
@@ -204,26 +206,26 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let bloque = 0;
           // Subtotal de devengos y descuentos(deducciones)
-          if (arrayTextLine[end].arrayText[0]?.text.includes("NETO:")) {
+          if (arrayTextLine[end]?.arrayText[0]?.text.includes("NETO:")) {
             bloque = end - 1;
             // EL BLOQUE TIENE NETO
             client.devengos.subtotal =
-              arrayTextLine[bloque].arrayText[0]?.text.split("$ ")[1];
+              arrayTextLine[bloque]?.arrayText[0]?.text.split("$ ")[1];
             client.deducciones.subtotal =
-              arrayTextLine[bloque].arrayText[1]?.text.split("$ ")[1];
+              arrayTextLine[bloque]?.arrayText[1]?.text.split("$ ")[1];
           } else {
-            if (arrayTextLine[end - 2].arrayText[0]?.text.includes("$")) {
+            if (arrayTextLine[end - 2]?.arrayText[0]?.text.includes("$")) {
               client.devengos.subtotal = arrayTextLine[
                 end - 2
-              ].arrayText[0]?.text
+              ]?.arrayText[0]?.text
                 .split("$")[1]
                 .trim()
                 .split(" ")[0];
             }
-            if (arrayTextLine[end].arrayText[1] === undefined) {
+            if (arrayTextLine[end]?.arrayText[1] === undefined) {
               client.deducciones.subtotal = arrayTextLine[
                 end
-              ].arrayText[0]?.text
+              ]?.arrayText[0]?.text
                 .split("$")[1]
                 .trim();
             } else {
@@ -232,16 +234,16 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // Si traen signo guardar sin signo
               client.devengos.subtotal = arrayTextLine[
                 end
-              ].arrayText[0]?.text.includes("$")
-                ? arrayTextLine[end].arrayText[0]?.text.split("$")[1].trim()
-                : arrayTextLine[end].arrayText[0]?.text;
+              ]?.arrayText[0]?.text.includes("$")
+                ? arrayTextLine[end]?.arrayText[0]?.text.split("$")[1]?.trim()
+                : arrayTextLine[end]?.arrayText[0]?.text;
 
               // Same thing
               client.deducciones.subtotal = arrayTextLine[
                 end
-              ].arrayText[1]?.text.includes("$")
-                ? arrayTextLine[end].arrayText[1]?.text.split("$")[1].trim()
-                : arrayTextLine[end].arrayText[1]?.text;
+              ]?.arrayText[1]?.text.includes("$")
+                ? arrayTextLine[end]?.arrayText[1]?.text.split("$")[1]?.trim()
+                : arrayTextLine[end]?.arrayText[1]?.text;
             }
           }
 
@@ -268,7 +270,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             let block = i + 1;
             let columna = 0;
 
-            arrayTextLine[i].arrayText.map((x) => {
+            arrayTextLine[i]?.arrayText.map((x) => {
               if (x.top.includes(":::")) {
                 top = x.top.split(":::")[1];
               } else {
@@ -283,18 +285,18 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 // Si el bloque de abajo empieza con el codigo 0 viene el nombre del convenio
                 if (
-                  arrayTextLine[block].arrayText[columna]?.text.startsWith(
+                  arrayTextLine[block]?.arrayText[columna]?.text.startsWith(
                     "0"
                   ) ||
-                  arrayTextLine[block].arrayText[columna]?.text.startsWith("1")
+                  arrayTextLine[block]?.arrayText[columna]?.text.startsWith("1")
                 ) {
                   codigoDividido =
-                    arrayTextLine[block].arrayText[columna]?.text.split(" ");
+                    arrayTextLine[block]?.arrayText[columna]?.text.split(" ");
                 } else {
                   // El bloque de abajo viene con otro texto o marca de agua
 
                   codigoDividido =
-                    arrayTextLine[block + 1].arrayText[columna]?.text.split(
+                    arrayTextLine[block + 1]?.arrayText[columna]?.text.split(
                       " "
                     );
                 }
@@ -309,12 +311,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // LA LINEA ###################### ----------------------------------
               if (x.text.includes("NOMBRE") && parseFloat(top) < 0.7) {
                 // Guardando Salario base dependiendo de la linea
-                let text2BloqueDetras = arrayTextLine[i - 2].arrayText[0]?.text;
-                let text2Bloque = arrayTextLine[i + 2].arrayText[0]?.text;
+                let text2BloqueDetras =
+                  arrayTextLine[i - 2]?.arrayText[0]?.text;
+                let text2Bloque = arrayTextLine[i + 2]?.arrayText[0]?.text;
 
-                let text4Bloque = arrayTextLine[i + 4].arrayText[0]?.text;
+                let text4Bloque = arrayTextLine[i + 4]?.arrayText[0]?.text;
 
-                let text6Bloque = arrayTextLine[i + 6].arrayText[0]?.text;
+                let text6Bloque = arrayTextLine[i + 6]?.arrayText[0]?.text;
 
                 // Guardando numero de cedula
                 let textInicioDocumento = x.text.split("(")[1];
@@ -325,17 +328,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 // Si el sueldo viene en el bloque 4
                 if (text4Bloque.includes("-")) {
                   if (text4Bloque.includes("$")) {
-                    sueldo = text4Bloque.split("$")[1].trim();
+                    sueldo = text4Bloque.split("$")[1]?.trim();
                   } else {
-                    sueldo = text4Bloque.split("-")[1].trim();
+                    sueldo = text4Bloque.split("-")[1]?.trim();
                   }
                 }
                 // Si el sueldo viene en el bloque 6
                 else if (text6Bloque.includes("-")) {
                   if (text6Bloque.includes("$")) {
-                    sueldo = text6Bloque.split("$")[1].trim();
+                    sueldo = text6Bloque.split("$")[1]?.trim();
                   } else {
-                    sueldo = text6Bloque.split("-")[1].trim();
+                    sueldo = text6Bloque.split("-")[1]?.trim();
                   }
                 }
                 // Si el sueldo viene en la linea actual
@@ -345,13 +348,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     let omitirInfo = text2Bloque.split("$")[1];
                     sueldo = omitirInfo.split(" ")[1];
                   } else if (x.text.includes("$")) {
-                    sueldo = x.text.split("$")[1].trim();
+                    sueldo = x.text.split("$")[1]?.trim();
                   } else {
                     sueldo = x.text.split(" ").pop();
                   }
                 } else if (x.text.includes("$")) {
                   // Caso especial
-                  sueldo = x.text.split("$")[1].trim();
+                  sueldo = x.text.split("$")[1]?.trim();
                 } else {
                   //Caso especial
                   if (x.text.includes(",")) {
@@ -370,7 +373,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   (text2BloqueDetras.includes("NOMINA") &&
                     text2BloqueDetras.includes(","))
                 ) {
-                  let extraerSueldo = text2BloqueDetras.split("$")[1].trim();
+                  let extraerSueldo = text2BloqueDetras.split("$")[1]?.trim();
                   sueldo = extraerSueldo.split(" ")[0];
                 }
 
@@ -379,7 +382,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 client.documentNumber = numDocumento;
 
                 // Guardando nombre del cliente
-                let nameSeparado = x.text.split(":")[2].trim();
+                let nameSeparado = x.text.split(":")[2]?.trim();
                 let name = nameSeparado.split(" (")[0];
                 client.name = name;
               }
@@ -387,12 +390,12 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               // GUARDANDO SUELDO NETO ###################### ----------------------------------
               if (x.text.includes("NETO: ")) {
                 if (x.text.includes("$")) {
-                  client.sueldoNeto = x.text.split("$")[1].trim();
+                  client.sueldoNeto = x.text.split("$")[1]?.trim();
                 } else {
                   if (x.text.includes(":")) {
-                    client.sueldoNeto = x.text.split(":")[1].trim();
+                    client.sueldoNeto = x.text.split(":")[1]?.trim();
                   } else {
-                    client.sueldoNeto = x.text.split("NETO")[1].trim();
+                    client.sueldoNeto = x.text.split("NETO")[1]?.trim();
                   }
                 }
               }
@@ -407,9 +410,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   client.banco.account = "NO REGISTRA";
                   client.banco.name = "NO REGISTRA";
                 } else {
-                  client.banco.account = arrayTextLine[i].arrayText[
+                  client.banco.account = arrayTextLine[i]?.arrayText[
                     columna
-                  ].text.replace(/\D/g, "");
+                  ]?.text.replace(/\D/g, "");
 
                   let separarCad = x.text.split(" ");
                   let ubicacionBanco;
@@ -454,14 +457,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let nit = "";
 
                 // Datos de la empresa
-                let dividirEmpresa = x.text.split(":")[1].trim();
+                let dividirEmpresa = x.text.split(":")[1]?.trim();
 
                 let name = dividirEmpresa.includes("(")
-                  ? dividirEmpresa.split("(")[0].trim()
+                  ? dividirEmpresa.split("(")[0]?.trim()
                   : dividirEmpresa;
 
-                let nit4bloque = arrayTextLine[i + 4].arrayText[0]?.text;
-                let nit6bloque = arrayTextLine[i + 6].arrayText[0]?.text;
+                let nit4bloque = arrayTextLine[i + 4]?.arrayText[0]?.text;
+                let nit6bloque = arrayTextLine[i + 6]?.arrayText[0]?.text;
                 // Si el nombre de la empresa no captura numeros
                 if (isNaN(parseInt(x.text.replace(/\D/g, "")))) {
                   // SOLO VIENE TEXTO
@@ -545,17 +548,17 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
 
           let validarDevengoCorrido =
-            arrayTextLine[init + 1].arrayText[2]?.left >= leftDiscounts
-              ? arrayTextLine[init + 1].arrayText[2]?.left
-              : arrayTextLine[init + 1].arrayText[4]?.left;
+            arrayTextLine[init + 1]?.arrayText[2]?.left >= leftDiscounts
+              ? arrayTextLine[init + 1]?.arrayText[2]?.left
+              : arrayTextLine[init + 1]?.arrayText[4]?.left;
 
           let leftCentroCosto =
-            arrayTextLine[init + 1].arrayText[3]?.left >= leftDiscounts
-              ? arrayTextLine[init + 1].arrayText[3]?.left
+            arrayTextLine[init + 1]?.arrayText[3]?.left >= leftDiscounts
+              ? arrayTextLine[init + 1]?.arrayText[3]?.left
               : validarDevengoCorrido;
 
           let leftConceptoDeduccion =
-            arrayTextLine[init + 1].arrayText[5]?.left;
+            arrayTextLine[init + 1]?.arrayText[5]?.left;
 
           // SI NO HAY DATOS EN LA TABLA
           if (init + 1 === end) {
@@ -572,89 +575,89 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
           // RECORRIDO DE TABLA
           for (let i = init + 1; i < end; i++) {
-            if (arrayTextLine[i].arrayText[0]?.left < leftDiscounts) {
+            if (arrayTextLine[i]?.arrayText[0]?.left < leftDiscounts) {
               let conceptoCodigo;
               let concepto;
               let unidades;
               let devengo;
-              arrayTextLine[i].arrayText.map((x) => {
+              arrayTextLine[i]?.arrayText.map((x) => {
                 let desc;
                 // Captura de devengos
 
                 if (x.left >= leftEarns && x.left < leftDiscounts) {
-                  if (arrayTextLine[i].arrayText[0]?.left < leftCentroCosto) {
+                  if (arrayTextLine[i]?.arrayText[0]?.left < leftCentroCosto) {
                     // Caso especial
                     // Si recibe devengo en la columna debida
-                    if (arrayTextLine[i].arrayText[3]?.text.includes("$")) {
+                    if (arrayTextLine[i]?.arrayText[3]?.text.includes("$")) {
                       // Valida que no venga con doble signo $
                       if (
-                        arrayTextLine[i].arrayText[3]?.text.split("$")[1] ===
+                        arrayTextLine[i]?.arrayText[3]?.text.split("$")[1] ===
                         " "
                       ) {
-                        devengo = arrayTextLine[i].arrayText[3]?.text
+                        devengo = arrayTextLine[i]?.arrayText[3]?.text
                           .split("$")[2]
                           .trim();
                       } else {
-                        devengo = arrayTextLine[i].arrayText[3]?.text
+                        devengo = arrayTextLine[i]?.arrayText[3]?.text
                           .split("$")[1]
                           .trim();
                       }
                     }
                     // Si recibe devengo en la columna 2
                     else if (
-                      arrayTextLine[i].arrayText[2]?.text.includes("$")
+                      arrayTextLine[i]?.arrayText[2]?.text.includes("$")
                     ) {
                       // Valida que no venga con doble signo $
                       if (
-                        arrayTextLine[i].arrayText[2]?.text.split("$")[1] ===
+                        arrayTextLine[i]?.arrayText[2]?.text.split("$")[1] ===
                         " "
                       ) {
-                        devengo = arrayTextLine[i].arrayText[2]?.text
+                        devengo = arrayTextLine[i]?.arrayText[2]?.text
                           .split("$")[2]
                           .trim();
                       } else {
-                        devengo = arrayTextLine[i].arrayText[2]?.text
+                        devengo = arrayTextLine[i]?.arrayText[2]?.text
                           .split("$")[1]
                           .trim();
                       }
                     }
                     // Si recibe devengo en la columna 1
                     else if (
-                      arrayTextLine[i].arrayText[1]?.text.includes("$")
+                      arrayTextLine[i]?.arrayText[1]?.text.includes("$")
                     ) {
-                      devengo = arrayTextLine[i].arrayText[1]?.text
+                      devengo = arrayTextLine[i]?.arrayText[1]?.text
                         .split("$")[1]
                         .trim();
                     } else {
                       devengo = "0";
                     }
 
-                    desc = arrayTextLine[i].arrayText[0]?.text
+                    desc = arrayTextLine[i]?.arrayText[0]?.text
                       .replace(/[\d]+/g, "")
                       .split(". ")[1];
 
                     // Si solo viene el codigo del concepto
                     if (!desc) {
-                      conceptoCodigo = arrayTextLine[i].arrayText[0]?.text;
-                      concepto = arrayTextLine[i].arrayText[1]?.text;
+                      conceptoCodigo = arrayTextLine[i]?.arrayText[0]?.text;
+                      concepto = arrayTextLine[i]?.arrayText[1]?.text;
                       unidades =
-                        arrayTextLine[i].arrayText[2]?.left >= leftDiscounts ||
-                        arrayTextLine[i].arrayText[2]?.text.includes("$")
+                        arrayTextLine[i]?.arrayText[2]?.left >= leftDiscounts ||
+                        arrayTextLine[i]?.arrayText[2]?.text.includes("$")
                           ? "0"
-                          : arrayTextLine[i].arrayText[2]?.text;
+                          : arrayTextLine[i]?.arrayText[2]?.text;
                     } else {
                       conceptoCodigo = arrayTextLine[
                         i
-                      ].arrayText[0]?.text.replace(/\D/g, "");
-                      concepto = arrayTextLine[i].arrayText[0]?.text
+                      ]?.arrayText[0]?.text.replace(/\D/g, "");
+                      concepto = arrayTextLine[i]?.arrayText[0]?.text
                         .replace(/[\d]+/g, "")
                         .split(". ")[1]
                         .trim();
                       unidades =
-                        arrayTextLine[i].arrayText[1]?.left >= leftDiscounts ||
-                        arrayTextLine[i].arrayText[1]?.text.includes("$")
+                        arrayTextLine[i]?.arrayText[1]?.left >= leftDiscounts ||
+                        arrayTextLine[i]?.arrayText[1]?.text.includes("$")
                           ? "0"
-                          : arrayTextLine[i].arrayText[1]?.text;
+                          : arrayTextLine[i]?.arrayText[1]?.text;
                     }
 
                     elementDevengos = {
@@ -684,7 +687,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               let concepto;
               let conceptoCodigo;
               let deduccion;
-              arrayTextLine[i].arrayText.map((x) => {
+              arrayTextLine[i]?.arrayText.map((x) => {
                 //Margen de error
                 if (
                   (x.left - 0.01).toFixed(2) === leftCentroCosto ||
@@ -694,7 +697,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 ) {
                   indiceColumnaCentroCosto = arrayTextLine[
                     i
-                  ].arrayText.findIndex((center) => {
+                  ]?.arrayText.findIndex((center) => {
                     return x === center;
                   });
                 }
@@ -709,30 +712,30 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               let initDeducciones = indiceColumnaCentroCosto + 1;
 
-              if (arrayTextLine[i].arrayText[initDeducciones]) {
+              if (arrayTextLine[i]?.arrayText[initDeducciones]) {
                 if (
-                  arrayTextLine[i].arrayText[
+                  arrayTextLine[i]?.arrayText[
                     initDeducciones + 1
                   ]?.text.includes("$")
                 ) {
-                  deduccion = arrayTextLine[i].arrayText[
+                  deduccion = arrayTextLine[i]?.arrayText[
                     initDeducciones + 1
                   ]?.text
                     .split("$")[1]
                     .trim();
-                  concepto = arrayTextLine[i].arrayText[initDeducciones]?.text
+                  concepto = arrayTextLine[i]?.arrayText[initDeducciones]?.text
                     .replace(/[\d]/g, "")
                     .split(".")[1]
                     .trim();
-                  conceptoCodigo = arrayTextLine[i].arrayText[
+                  conceptoCodigo = arrayTextLine[i]?.arrayText[
                     initDeducciones
                   ]?.text.replace(/\D/g, "");
                 } else {
                   concepto =
-                    arrayTextLine[i].arrayText[initDeducciones + 1]?.text;
+                    arrayTextLine[i]?.arrayText[initDeducciones + 1]?.text;
                   conceptoCodigo =
-                    arrayTextLine[i].arrayText[initDeducciones]?.text;
-                  deduccion = arrayTextLine[i].arrayText[
+                    arrayTextLine[i]?.arrayText[initDeducciones]?.text;
+                  deduccion = arrayTextLine[i]?.arrayText[
                     initDeducciones + 2
                   ]?.text
                     .split("$")[1]

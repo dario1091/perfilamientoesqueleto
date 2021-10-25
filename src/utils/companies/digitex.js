@@ -96,7 +96,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     }
                   }
                   if (pos !== -1) {
-                    arrayTextLine[pos].arrayText.push({
+                    arrayTextLine[pos]?.arrayText.push({
                       text: block.Text,
                       left: block.Geometry.BoundingBox.Left.toFixed(2),
                       confidence: block.Confidence,
@@ -148,7 +148,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     }
                   }
                   if (pos !== -1) {
-                    arrayTextLine[pos].arrayText.push({
+                    arrayTextLine[pos]?.arrayText.push({
                       text: block.Text,
                       left: block.Geometry.BoundingBox.Left.toFixed(2),
                       confidence: block.Confidence,
@@ -188,7 +188,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let init = arrayTextLine
             .map((e) => {
-              return e.arrayText[0].text;
+              return e.arrayText[0]?.text;
             })
             .indexOf("Concepto");
 
@@ -197,7 +197,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
            */
           let end = arrayTextLine
             .map((e) => {
-              return e.arrayText[0].text;
+              return e.arrayText[0]?.text;
             })
             .indexOf("Unidad Org.");
 
@@ -222,46 +222,46 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             let bloque = i + 1;
             let columna = 0;
 
-            arrayTextLine[i].arrayText.map((x) => {
+            arrayTextLine[i]?.arrayText.map((x) => {
               if (x.text === "Total Devengos" || x.text === "Total Devenges") {
                 columna = 1;
                 client.devengos.subtotal =
-                  arrayTextLine[bloque].arrayText[columna].text;
+                  arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "Total Descuentos") {
                 columna = 2;
                 client.descuentos.subtotal =
-                  arrayTextLine[bloque].arrayText[columna].text;
+                  arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "Empleado") {
                 if (
-                  arrayTextLine[i + 1].arrayText[columna].text === "Comdata"
+                  arrayTextLine[i + 1]?.arrayText[columna]?.text === "Comdata"
                 ) {
-                  client.name = arrayTextLine[i + 2].arrayText[columna].text;
+                  client.name = arrayTextLine[i + 2]?.arrayText[columna]?.text;
                 } else {
-                  client.name = arrayTextLine[bloque].arrayText[columna].text;
+                  client.name = arrayTextLine[bloque]?.arrayText[columna]?.text;
                 }
               }
 
               if (x.text === "EPS") {
                 columna = 1;
-                client.salud = arrayTextLine[bloque].arrayText[columna].text;
+                client.salud = arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "Ingreso" || x.text === "Ingreao") {
                 client.fechaIngreso =
-                  arrayTextLine[bloque].arrayText[columna].text;
+                  arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "AFP") {
                 columna = 2;
-                client.pension = arrayTextLine[bloque].arrayText[columna].text;
+                client.pension = arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "Unidad Org.") {
-                client.convenio = arrayTextLine[bloque].arrayText[columna].text;
+                client.convenio = arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (
@@ -271,18 +271,18 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               ) {
                 columna = 3;
                 client.sueldoNeto =
-                  arrayTextLine[bloque].arrayText[columna].text;
+                  arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "Sueldo Base" || x.text === "Sualdo Base") {
                 columna = 4;
-                client.basico = arrayTextLine[bloque].arrayText[columna].text;
+                client.basico = arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (x.text === "Núm. Documento") {
                 columna = 3;
                 client.documentNumber =
-                  arrayTextLine[bloque].arrayText[columna].text;
+                  arrayTextLine[bloque]?.arrayText[columna]?.text;
               }
 
               if (
@@ -295,38 +295,38 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   // "El periodo de pago viene en distintas lineas";
                   columna = 1;
                   client.nomina =
-                    arrayTextLine[i].arrayText[columna].text.split(" ")[2];
+                    arrayTextLine[i]?.arrayText[columna]?.text.split(" ")[2];
                 } else {
                   client.nomina =
-                    arrayTextLine[i].arrayText[columna].text.split(" ")[4];
+                    arrayTextLine[i]?.arrayText[columna]?.text.split(" ")[4];
                 }
               }
 
               // let regex = /^[0-9]*$/;
               if (
-                arrayTextLine[i].arrayText[0].text
+                arrayTextLine[i]?.arrayText[0]?.text
                   .toUpperCase()
                   .startsWith("BANCO")
               ) {
-                let texto = arrayTextLine[i].arrayText[0].text;
+                let texto = arrayTextLine[i]?.arrayText[0]?.text;
                 //Si la linea contiene numeros es es el numero de cuenta
                 if (!isNaN(parseInt(texto.replace(/\D/g, "")))) {
-                  client.banco.account = arrayTextLine[i].arrayText[
+                  client.banco.account = arrayTextLine[i]?.arrayText[
                     columna
-                  ].text.replace(/\D/g, "");
-                  client.banco.name = arrayTextLine[i].arrayText[
+                  ]?.text.replace(/\D/g, "");
+                  client.banco.name = arrayTextLine[i]?.arrayText[
                     columna
-                  ].text.replace(/[0-9]+/g, "");
+                  ]?.text.replace(/[0-9]+/g, "");
                 } else {
                   //Se guarda el numero de cuenta de la siguiente linea
 
-                  client.banco.name = arrayTextLine[i].arrayText[
+                  client.banco.name = arrayTextLine[i]?.arrayText[
                     columna
-                  ].text.replace(/[0-9]+/g, "");
+                  ]?.text.replace(/[0-9]+/g, "");
 
-                  client.banco.account = arrayTextLine[bloque].arrayText[
+                  client.banco.account = arrayTextLine[bloque]?.arrayText[
                     columna
-                  ].text.replace(/\D/g, "");
+                  ]?.text.replace(/\D/g, "");
                 }
               }
 
@@ -334,30 +334,30 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 x.text.toUpperCase().includes("S.A.S") ||
                 x.text.toUpperCase().includes("DIGITEX")
               ) {
-                company.name = arrayTextLine[i].arrayText[columna].text;
+                company.name = arrayTextLine[i]?.arrayText[columna]?.text;
               }
 
               if (x.text.toUpperCase().startsWith("NIT")) {
                 columna = 0;
                 if (x.text.includes(":")) {
                   company.nit =
-                    arrayTextLine[i].arrayText[columna].text.slice(4);
+                    arrayTextLine[i]?.arrayText[columna]?.text.slice(4);
                 } else {
                   company.nit =
-                    arrayTextLine[i].arrayText[columna].text.slice(3);
+                    arrayTextLine[i]?.arrayText[columna]?.text.slice(3);
                 }
               }
 
               if (x.text.toUpperCase().startsWith("CARGO:")) {
                 //Si trae 2 bloques, tomar la columna 1
-                if (arrayTextLine[i].arrayText.length === 2) {
+                if (arrayTextLine[i]?.arrayText.length === 2) {
                   columna = 1;
                   client.cargo =
-                    arrayTextLine[i].arrayText[columna].text.split(":")[1];
+                    arrayTextLine[i]?.arrayText[columna]?.text.split(":")[1];
                 } else {
                   //Si solo trae 1, la columna 0
                   client.cargo =
-                    arrayTextLine[i].arrayText[columna].text.split(":")[1];
+                    arrayTextLine[i]?.arrayText[columna]?.text.split(":")[1];
                 }
               }
 
@@ -412,43 +412,43 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           let leftColumnaUnidades = 0;
 
           for (let i = init + 1; i < end; i++) {
-            leftColumnaUnidades = arrayTextLine[i].arrayText[1]?.left;
+            leftColumnaUnidades = arrayTextLine[i]?.arrayText[1]?.left;
 
             /**
              * Variable ternaria que pregunta si la columna unidad es vacia
              * guarda el valor de devengo/descuento en su respectivo campo
              */
             let columnaUnidadVacia =
-              arrayTextLine[i].arrayText[1]?.left >= leftColumnaUnidades
-                ? arrayTextLine[i].arrayText[1]?.text
+              arrayTextLine[i]?.arrayText[1]?.left >= leftColumnaUnidades
+                ? arrayTextLine[i]?.arrayText[1]?.text
                 : 0;
 
             /**
              * Referencia para guardar el dato precio
              */
             leftColumnaPrecio =
-              arrayTextLine[i].arrayText[2] === undefined
+              arrayTextLine[i]?.arrayText[2] === undefined
                 ? "0"
-                : arrayTextLine[i].arrayText[2]?.left;
+                : arrayTextLine[i]?.arrayText[2]?.left;
 
-            console.log(arrayTextLine[i].arrayText[2]);
+            console.log(arrayTextLine[i]?.arrayText[2]);
             //Recorrido de cada columna para guardar los datos
-            arrayTextLine[i].arrayText.map((x) => {
+            arrayTextLine[i]?.arrayText.map((x) => {
               // List de devengos
               if (x.left > leftEarns && x.left < leftDiscounts) {
-                // console.log(arrayTextLine[i].arrayText[0].text);
-                let concepto = arrayTextLine[i].arrayText[0]?.text;
+                // console.log(arrayTextLine[i]?.arrayText[0]?.text);
+                let concepto = arrayTextLine[i]?.arrayText[0]?.text;
                 let unidades =
-                  arrayTextLine[i].arrayText[1]?.left >= leftEarns
+                  arrayTextLine[i]?.arrayText[1]?.left >= leftEarns
                     ? 0
-                    : arrayTextLine[i].arrayText[1]?.text;
+                    : arrayTextLine[i]?.arrayText[1]?.text;
                 let precio =
-                  arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
-                    ? arrayTextLine[i].arrayText[2]?.text
+                  arrayTextLine[i]?.arrayText[2]?.left >= leftColumnaPrecio
+                    ? arrayTextLine[i]?.arrayText[2]?.text
                     : 0;
                 let devengo =
-                  arrayTextLine[i].arrayText[3]?.left >= leftEarns
-                    ? arrayTextLine[i].arrayText[3]?.text
+                  arrayTextLine[i]?.arrayText[3]?.left >= leftEarns
+                    ? arrayTextLine[i]?.arrayText[3]?.text
                     : columnaUnidadVacia;
 
                 elementDevengos = {
@@ -469,18 +469,18 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // List de descuentos
               else if (x.left >= leftDiscounts) {
-                let concepto = arrayTextLine[i].arrayText[0]?.text;
+                let concepto = arrayTextLine[i]?.arrayText[0]?.text;
                 let unidades =
-                  arrayTextLine[i].arrayText[1]?.left >= leftDiscounts
+                  arrayTextLine[i]?.arrayText[1]?.left >= leftDiscounts
                     ? 0
-                    : arrayTextLine[i].arrayText[1]?.text;
+                    : arrayTextLine[i]?.arrayText[1]?.text;
                 let precio =
-                  arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
-                    ? arrayTextLine[i].arrayText[2]?.text
+                  arrayTextLine[i]?.arrayText[2]?.left >= leftColumnaPrecio
+                    ? arrayTextLine[i]?.arrayText[2]?.text
                     : 0;
                 let descuentos =
-                  arrayTextLine[i].arrayText[3]?.left >= leftDiscounts
-                    ? arrayTextLine[i].arrayText[3]?.text
+                  arrayTextLine[i]?.arrayText[3]?.left >= leftDiscounts
+                    ? arrayTextLine[i]?.arrayText[3]?.text
                     : columnaUnidadVacia;
 
                 elementDescuentos = {
@@ -502,16 +502,16 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             // Datos que no son ni devengos ni descuentos y se
             // almacenan en descuentos
             if (
-              arrayTextLine[i].arrayText[3]?.text === undefined &&
-              arrayTextLine[i].arrayText[4]?.text === undefined &&
-              arrayTextLine[i].arrayText[1].left < leftDiscounts
+              arrayTextLine[i]?.arrayText[3]?.text === undefined &&
+              arrayTextLine[i]?.arrayText[4]?.text === undefined &&
+              arrayTextLine[i]?.arrayText[1]?.left < leftDiscounts
             ) {
               norDevNorDesc = {
-                concepto: arrayTextLine[i].arrayText[0]?.text,
-                unidades: arrayTextLine[i].arrayText[1]?.text,
+                concepto: arrayTextLine[i]?.arrayText[0]?.text,
+                unidades: arrayTextLine[i]?.arrayText[1]?.text,
                 precio:
-                  arrayTextLine[i].arrayText[2]?.left >= leftColumnaPrecio
-                    ? arrayTextLine[i].arrayText[2]?.text
+                  arrayTextLine[i]?.arrayText[2]?.left >= leftColumnaPrecio
+                    ? arrayTextLine[i]?.arrayText[2]?.text
                     : 0,
                 descuentos: 0,
               };

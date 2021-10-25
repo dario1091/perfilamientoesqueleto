@@ -37,14 +37,14 @@ async function worker() {
     // let awsPathFile =
     //   "https://archivosavanzo.s3.us-east-2.amazonaws.com/1116446441/36/documentFront.png";
 
-    let awsPathFile = `src/docs/${company}/${folder}/paymentSupport-d38da2f88c5e46c3.jpeg`;
+    let awsPathFile = `src/docs/${company}/${folder}/paymentSupport-d18b4302ef6e4e6c.png`;
     await readPaymentgSupport(awsPathFile).then((response) => {
       if (response) {
         // console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
         console.log(":::::::::::::::    response    ::::::::::::::::::");
         // console.log(":::::::::::::::::::::::::::::::::::::::::::::::::");
         // fs.writeFileSync(
-        //   `json/${company}/${folder}/paymentSupport-4135697453e8cdc1-1.json`,
+        //   `json/${company}/${folder}/paymentSupport-d18b4302ef6e4e6c.json`,
         //   JSON.stringify(response)
         // );
         console.log(JSON.parse(JSON.stringify(response)));
