@@ -319,9 +319,16 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 let text6Bloque = arrayTextLine[i + 6]?.arrayText[0]?.text;
 
+
+                let textInicioDocumento
+                let numDocumento
                 // Guardando numero de cedula
-                let textInicioDocumento = x.text.split("(")[1];
-                let numDocumento = textInicioDocumento.split(")")[0];
+                if (x.text.includes("(")) {
+                  textInicioDocumento = x.text.split("(")[1];
+                  numDocumento = textInicioDocumento.split(")")[0];
+                } else {
+                  numDocumento = x.text.replace(/\D/g, "");
+                }
 
                 // Guardando sueldo
                 let sueldo;
@@ -642,7 +649,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       concepto = arrayTextLine[i]?.arrayText[1]?.text;
                       unidades =
                         arrayTextLine[i]?.arrayText[2]?.left >= leftDiscounts ||
-                        arrayTextLine[i]?.arrayText[2]?.text.includes("$")
+                          arrayTextLine[i]?.arrayText[2]?.text.includes("$")
                           ? "0"
                           : arrayTextLine[i]?.arrayText[2]?.text;
                     } else {
@@ -655,7 +662,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                         .trim();
                       unidades =
                         arrayTextLine[i]?.arrayText[1]?.left >= leftDiscounts ||
-                        arrayTextLine[i]?.arrayText[1]?.text.includes("$")
+                          arrayTextLine[i]?.arrayText[1]?.text.includes("$")
                           ? "0"
                           : arrayTextLine[i]?.arrayText[1]?.text;
                     }
@@ -693,7 +700,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   (x.left - 0.01).toFixed(2) === leftCentroCosto ||
                   x.left === leftCentroCosto ||
                   (parseFloat(x.left) + 0.01).toFixed(2).toString() ===
-                    leftCentroCosto
+                  leftCentroCosto
                 ) {
                   indiceColumnaCentroCosto = arrayTextLine[
                     i
