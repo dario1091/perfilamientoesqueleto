@@ -36,9 +36,9 @@ const readMultipleLines = (
         .join(" ")
         .concat(
           " " +
-            array[i + 1]?.arrayText[columnOrigen]?.text +
-            " " +
-            array[i + 2]?.arrayText[columnOrigen]?.text
+          array[i + 1]?.arrayText[columnOrigen]?.text +
+          " " +
+          array[i + 2]?.arrayText[columnOrigen]?.text
         );
     } else {
       saveData = textReceived.text.split(" ").slice(1).join(" ");
@@ -57,11 +57,11 @@ const readMultipleLines = (
         .join(" ")
         .concat(
           " " +
-            array[i + 1]?.arrayText[columnOrigen]?.text +
-            " " +
-            array[i + 2]?.arrayText[columnOrigen]?.text +
-            " " +
-            array[i + 3]?.arrayText[columnOrigen]?.text
+          array[i + 1]?.arrayText[columnOrigen]?.text +
+          " " +
+          array[i + 2]?.arrayText[columnOrigen]?.text +
+          " " +
+          array[i + 3]?.arrayText[columnOrigen]?.text
         );
     } else {
       saveData = textReceived.text.split(" ").slice(1).join(" ");
@@ -254,23 +254,23 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
           // unica imagen
           let init2 = dobleFactura
             ? arrayTextLine
-                .map((e) => {
-                  if (e.arrayText[0]?.top > 0.5) {
-                    return e.arrayText[0]?.text;
-                  }
-                })
-                .indexOf("DEVENGOS")
+              .map((e) => {
+                if (e.arrayText[0]?.top > 0.5) {
+                  return e.arrayText[0]?.text;
+                }
+              })
+              .indexOf("DEVENGOS")
             : 0;
           // console.log(init2);
 
           let end2 = dobleFactura
             ? arrayTextLine
-                .map((e) => {
-                  if (e.arrayText[0]?.top > 0.5) {
-                    return e.arrayText[0]?.text;
-                  }
-                })
-                .indexOf("SUBTOTAL")
+              .map((e) => {
+                if (e.arrayText[0]?.top > 0.5) {
+                  return e.arrayText[0]?.text;
+                }
+              })
+              .indexOf("SUBTOTAL")
             : 0;
           // console.log(end2);
           /**
@@ -805,19 +805,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     valueOnAmount =
                       arrayTextLine[i]?.arrayText[2]?.left >=
                         leftValorDevengo &&
-                      arrayTextLine[i]?.arrayText[2]?.left <= leftBasic
+                        arrayTextLine[i]?.arrayText[2]?.left <= leftBasic
                         ? arrayTextLine[i]?.arrayText[2]?.text
                         : 0;
 
                     let amountOnConcept =
                       arrayTextLine[i]?.arrayText[1]?.left >=
-                      leftCantidadDevengo
+                        leftCantidadDevengo
                         ? "No leible"
                         : arrayTextLine[i]?.arrayText[1]?.text;
 
                     let amountDif =
                       arrayTextLine[i]?.arrayText[1]?.left >=
-                      leftCantidadDevengo
+                        leftCantidadDevengo
                         ? arrayTextLine[i]?.arrayText[1]?.text
                         : 0;
 
@@ -829,10 +829,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     concepto =
                       arrayTextLine[i]?.arrayText[1]?.left ===
                         arrayTextLine[i + 1]?.arrayText[0]?.left &&
-                      arrayTextLine[i + 1]?.arrayText[1] === undefined
+                        arrayTextLine[i + 1]?.arrayText[1] === undefined
                         ? arrayTextLine[i]?.arrayText[1]?.text.concat(
-                            " " + arrayTextLine[i + 1]?.arrayText[0]?.text
-                          )
+                          " " + arrayTextLine[i + 1]?.arrayText[0]?.text
+                        )
                         : amountOnConcept;
 
                     unidades =
@@ -849,7 +849,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   else {
                     valueOnAmount =
                       arrayTextLine[i]?.arrayText[1]?.left >=
-                      leftCantidadDevengo
+                        leftCantidadDevengo
                         ? arrayTextLine[i]?.arrayText[1]?.text
                         : 0;
 
@@ -857,22 +857,22 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       arrayTextLine[i]?.arrayText[0]?.left > leftEarns
                         ? 0
                         : arrayTextLine[i]?.arrayText[0]?.text.replace(
-                            /\D/g,
-                            ""
-                          );
+                          /\D/g,
+                          ""
+                        );
 
                     concepto =
                       arrayTextLine[i]?.arrayText[0]?.left ===
                         arrayTextLine[i + 1]?.arrayText[0]?.left &&
-                      arrayTextLine[i + 1]?.arrayText[1] === undefined
+                        arrayTextLine[i + 1]?.arrayText[1] === undefined
                         ? arrayTextLine[i]?.arrayText[0]?.text
-                            .replace(/[\d]+/g, "")
-                            .concat(
-                              " " + arrayTextLine[i + 1]?.arrayText[0]?.text
-                            )
+                          .replace(/[\d]+/g, "")
+                          .concat(
+                            " " + arrayTextLine[i + 1]?.arrayText[0]?.text
+                          )
                         : arrayTextLine[i]?.arrayText[0]?.text
-                            .replace(/[\d]+/g, "")
-                            .trim();
+                          .replace(/[\d]+/g, "")
+                          .trim();
 
                     unidades =
                       arrayTextLine[i]?.arrayText[1]?.left < leftValorDevengo
@@ -1013,7 +1013,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 if (
                   (descDevengo &&
                     arrayTextLine[i]?.arrayText[1]?.left >=
-                      leftCantidadDevengo) ||
+                    leftCantidadDevengo) ||
                   (!descDevengo &&
                     arrayTextLine[i]?.arrayText[2]?.left >= leftValorDevengo)
                 ) {
@@ -1033,6 +1033,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
               // Calculo confidence
               if (x.left > leftBasic) {
+                // console.log(x)
                 contConfidence += x.confidence;
                 totalDatos++;
                 client.deducciones.confidence = (
@@ -1041,9 +1042,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
               }
             });
 
+
             if (arrayTextLine[i]?.arrayText[indiceCodigoDeduccion]) {
               if (
-                arrayTextLine[i]?.arrayText[indiceCodigoDeduccion]?.left >=
+                arrayTextLine[i]?.arrayText[indiceCodigoDeduccion]?.left >
                 leftBasic
               ) {
                 let concepto;
@@ -1055,14 +1057,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 let concepValidation =
                   arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
                     ?.left === arrayTextLine[i + 1]?.arrayText[1]?.left &&
-                  arrayTextLine[i + 1]?.arrayText[0]?.left < leftBasic
+                    arrayTextLine[i + 1]?.arrayText[0]?.left < leftBasic
                     ? arrayTextLine[i]?.arrayText[
-                        indiceCodigoDeduccion + 1
-                      ]?.text.concat(
-                        " " + arrayTextLine[i + 1]?.arrayText[1]?.text
-                      )
+                      indiceCodigoDeduccion + 1
+                    ]?.text.concat(
+                      " " + arrayTextLine[i + 1]?.arrayText[1]?.text
+                    )
                     : arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
-                        ?.text;
+                      ?.text;
 
                 if (codeOnValue) {
                   conceptoCodigo = codeOnValue;
@@ -1075,16 +1077,16 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       ?.left >= leftValorDeduccion
                       ? 0
                       : arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
-                          ?.text;
+                        ?.text;
                 } else {
                   concepto =
                     arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
                       ?.left === arrayTextLine[i + 1]?.arrayText[0]?.left
                       ? arrayTextLine[i]?.arrayText[
-                          indiceCodigoDeduccion + 1
-                        ]?.text.concat(
-                          " " + arrayTextLine[i + 1]?.arrayText[0]?.text
-                        )
+                        indiceCodigoDeduccion + 1
+                      ]?.text.concat(
+                        " " + arrayTextLine[i + 1]?.arrayText[0]?.text
+                      )
                       : concepValidation;
 
                   conceptoCodigo =
@@ -1094,7 +1096,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
                       ?.left < leftValorDeduccion
                       ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
-                          ?.text
+                        ?.text
                       : 0;
                 }
 
@@ -1106,21 +1108,21 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
                     ?.left >= leftValorDeduccion
                     ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
-                        ?.text
+                      ?.text
                     : 0;
 
                 let deduccionOnAmount =
                   arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
                     ?.left >= leftValorDeduccion
                     ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
-                        ?.text
+                      ?.text
                     : deduccionOnDesc;
 
                 let deduccion =
                   arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 3]
                     ?.left >= leftValorDeduccion
                     ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 3]
-                        ?.text
+                      ?.text
                     : deduccionOnAmount;
 
                 elementDeducciones = {
@@ -1133,6 +1135,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                 client.deducciones.list.push(elementDeducciones);
               }
+
             }
           }
 
@@ -1169,19 +1172,19 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       valueOnAmount =
                         arrayTextLine[i]?.arrayText[2]?.left >=
                           leftValorDevengo &&
-                        arrayTextLine[i]?.arrayText[2]?.left <= leftBasic
+                          arrayTextLine[i]?.arrayText[2]?.left <= leftBasic
                           ? arrayTextLine[i]?.arrayText[2]?.text
                           : 0;
 
                       let amountOnConcept =
                         arrayTextLine[i]?.arrayText[1]?.left >=
-                        leftCantidadDevengo
+                          leftCantidadDevengo
                           ? "No leible"
                           : arrayTextLine[i]?.arrayText[1]?.text;
 
                       let amountDif =
                         arrayTextLine[i]?.arrayText[1]?.left >=
-                        leftCantidadDevengo
+                          leftCantidadDevengo
                           ? arrayTextLine[i]?.arrayText[1]?.text
                           : 0;
 
@@ -1193,10 +1196,10 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       concepto =
                         arrayTextLine[i]?.arrayText[1]?.left ===
                           arrayTextLine[i + 1]?.arrayText[0]?.left &&
-                        arrayTextLine[i + 1]?.arrayText[1] === undefined
+                          arrayTextLine[i + 1]?.arrayText[1] === undefined
                           ? arrayTextLine[i]?.arrayText[1]?.text.concat(
-                              " " + arrayTextLine[i + 1]?.arrayText[0]?.text
-                            )
+                            " " + arrayTextLine[i + 1]?.arrayText[0]?.text
+                          )
                           : amountOnConcept;
 
                       unidades =
@@ -1213,7 +1216,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     else {
                       valueOnAmount =
                         arrayTextLine[i]?.arrayText[1]?.left >=
-                        leftCantidadDevengo
+                          leftCantidadDevengo
                           ? arrayTextLine[i]?.arrayText[1]?.text
                           : 0;
 
@@ -1221,22 +1224,22 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                         arrayTextLine[i]?.arrayText[0]?.left > leftEarns
                           ? 0
                           : arrayTextLine[i]?.arrayText[0]?.text.replace(
-                              /\D/g,
-                              ""
-                            );
+                            /\D/g,
+                            ""
+                          );
 
                       concepto =
                         arrayTextLine[i]?.arrayText[0]?.left ===
                           arrayTextLine[i + 1]?.arrayText[0]?.left &&
-                        arrayTextLine[i + 1]?.arrayText[1] === undefined
+                          arrayTextLine[i + 1]?.arrayText[1] === undefined
                           ? arrayTextLine[i]?.arrayText[0]?.text
-                              .replace(/[\d]+/g, "")
-                              .concat(
-                                " " + arrayTextLine[i + 1]?.arrayText[0]?.text
-                              )
+                            .replace(/[\d]+/g, "")
+                            .concat(
+                              " " + arrayTextLine[i + 1]?.arrayText[0]?.text
+                            )
                           : arrayTextLine[i]?.arrayText[0]?.text
-                              .replace(/[\d]+/g, "")
-                              .trim();
+                            .replace(/[\d]+/g, "")
+                            .trim();
 
                       unidades =
                         arrayTextLine[i]?.arrayText[1]?.left < leftValorDevengo
@@ -1345,7 +1348,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 if (
                   !(
                     arrayTextLine[i]?.arrayText[0]?.left >=
-                      leftConceptoDevengo &&
+                    leftConceptoDevengo &&
                     arrayTextLine[i]?.arrayText[0]?.left < leftCantidadDevengo
                   )
                 ) {
@@ -1372,7 +1375,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   if (
                     (descDevengo &&
                       arrayTextLine[i]?.arrayText[1]?.left >=
-                        leftCantidadDevengo) ||
+                      leftCantidadDevengo) ||
                     (!descDevengo &&
                       arrayTextLine[i]?.arrayText[2]?.left >= leftValorDevengo)
                   ) {
@@ -1415,14 +1418,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                   let concepValidation =
                     arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
                       ?.left === arrayTextLine[i + 1]?.arrayText[1]?.left &&
-                    arrayTextLine[i + 1]?.arrayText[0]?.left < leftBasic
+                      arrayTextLine[i + 1]?.arrayText[0]?.left < leftBasic
                       ? arrayTextLine[i]?.arrayText[
-                          indiceCodigoDeduccion + 1
-                        ]?.text.concat(
-                          " " + arrayTextLine[i + 1]?.arrayText[1]?.text
-                        )
+                        indiceCodigoDeduccion + 1
+                      ]?.text.concat(
+                        " " + arrayTextLine[i + 1]?.arrayText[1]?.text
+                      )
                       : arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
-                          ?.text;
+                        ?.text;
 
                   if (codeOnValue) {
                     conceptoCodigo = codeOnValue;
@@ -1435,16 +1438,16 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                         ?.left >= leftValorDeduccion
                         ? 0
                         : arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
-                            ?.text;
+                          ?.text;
                   } else {
                     concepto =
                       arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
                         ?.left === arrayTextLine[i + 1]?.arrayText[0]?.left
                         ? arrayTextLine[i]?.arrayText[
-                            indiceCodigoDeduccion + 1
-                          ]?.text.concat(
-                            " " + arrayTextLine[i + 1]?.arrayText[0]?.text
-                          )
+                          indiceCodigoDeduccion + 1
+                        ]?.text.concat(
+                          " " + arrayTextLine[i + 1]?.arrayText[0]?.text
+                        )
                         : concepValidation;
 
                     conceptoCodigo =
@@ -1454,7 +1457,7 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                       arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
                         ?.left < leftValorDeduccion
                         ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
-                            ?.text
+                          ?.text
                         : 0;
                   }
 
@@ -1466,21 +1469,21 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                     arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
                       ?.left >= leftValorDeduccion
                       ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 1]
-                          ?.text
+                        ?.text
                       : 0;
 
                   let deduccionOnAmount =
                     arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
                       ?.left >= leftValorDeduccion
                       ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 2]
-                          ?.text
+                        ?.text
                       : deduccionOnDesc;
 
                   let deduccion =
                     arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 3]
                       ?.left >= leftValorDeduccion
                       ? arrayTextLine[i]?.arrayText[indiceCodigoDeduccion + 3]
-                          ?.text
+                        ?.text
                       : deduccionOnAmount;
 
                   elementDeducciones2 = {
