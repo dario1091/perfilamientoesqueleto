@@ -212,16 +212,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                     // Referencias top para diferenciar una tabla de la otra
                     let topRefPrimeraTabla;
-                    let topRefSegTabla;
+                    // let topRefSegTabla;
                     try {
                         topRefPrimeraTabla = arrayTextLine[end]?.arrayText[0]?.top;
-                        dobleDesprendible && (topRefSegTabla = arrayTextLine[end2]?.arrayText[0]?.top)
+                        // dobleDesprendible && (topRefSegTabla = arrayTextLine[end2]?.arrayText[0]?.top)
                     } catch (error) {
                         console.log("Error controlado al guardar referencias top del documento");
                         console.log(error);
                     }
-
-                    // console.log(topRefPrimeraTabla)
 
                     /**
                      * Recorrido del documento para capturar datos fijos donde se
@@ -356,10 +354,13 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                             // CAPTURA SALARIO
                             try {
                                 if (x.text.toUpperCase().includes("SALARIO") && top < 0.4) {
+                                    let basic;
                                     if (x.text.includes(":")) {
-                                        client.basico = x.text.split(":")[1].trim();
+                                        basic = x.text.split(":")[1].trim()
+                                        client.basico = basic.slice(0, (basic.length - 3))
                                     } else {
-                                        client.basico = x.text.split(" ").pop();
+                                        basic = x.text.split(" ").pop()
+                                        client.basico = basic.slice(0, (basic.length - 3));
                                     }
                                 }
                                 dobleDesprendible && (client2.basico = client.basico);
