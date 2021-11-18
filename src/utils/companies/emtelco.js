@@ -14,6 +14,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
              */
             let resultObject = {};
 
+            let resultArr = [];
+
             /**
              * Left de devengos
              */
@@ -25,9 +27,9 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
             let leftDiscounts = 0;
 
             let contConfidence = 0;
-            let contConfidence2 = 0;
+            // let contConfidence2 = 0;
             let totalDatos = 0;
-            let totalDatos2 = 0;
+            // let totalDatos2 = 0;
 
             let client = {
                 name: "",
@@ -656,11 +658,14 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
 
                     if (dobleDesprendible) {
                         resultObject = { client, company, client2, company2 };
+                        resultArr.push({ client: resultObject.client, company: resultObject.company })
+                        resultArr.push({ client: resultObject.client2, company: resultObject.company2 })
                     } else {
                         resultObject = { client, company };
+                        resultArr.push(resultObject)
                     }
 
-                    jsonToRead ? resolve(resultObject) : resolve(false);
+                    jsonToRead ? resolve(resultArr) : resolve(false);
                 })();
             }
         } catch (error) {
