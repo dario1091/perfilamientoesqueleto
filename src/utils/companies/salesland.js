@@ -341,6 +341,8 @@ const readPaymentgSupport = (filePath, isRequest = false) =>
                 !x.text.includes("BANCO")
               ) {
                 company.name = x.text;
+              } else if (x.text.includes("SALESLAND") || x.text.includes("SALES LAND")) {
+                company.name = x.text;
               }
 
               // Guardando nombre y documento del cliente
